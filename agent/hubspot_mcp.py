@@ -18,11 +18,8 @@ def create_contact(email, phone=None):
         }
     }
 
-    print("Sending to HubSpot:", data)
-
     response = requests.post(url, json=data, headers=headers)
 
-    print("STATUS:", response.status_code)
-    print("RESPONSE:", response.text)
+    print("HubSpot response:", response.status_code, response.text)
 
     return response.json()
