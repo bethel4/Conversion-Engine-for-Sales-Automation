@@ -1,0 +1,36 @@
+[
+    {
+        "label": "FastAPI",
+        "importPath": "fastapi",
+        "description": "fastapi",
+        "isExtraImport": true,
+        "detail": "fastapi",
+        "documentation": {}
+    },
+    {
+        "label": "Request",
+        "importPath": "fastapi",
+        "description": "fastapi",
+        "isExtraImport": true,
+        "detail": "fastapi",
+        "documentation": {}
+    },
+    {
+        "label": "health",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def health():\n    return {\"status\": \"running\"}\n@app.post(\"/webhook\")\nasync def webhook(request: Request):\n    data = await request.json()\n    print(\"Incoming webhook:\", data)\n    return {\"status\": \"received\"}",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "app = FastAPI()\n@app.get(\"/\")\ndef health():\n    return {\"status\": \"running\"}\n@app.post(\"/webhook\")\nasync def webhook(request: Request):\n    data = await request.json()\n    print(\"Incoming webhook:\", data)\n    return {\"status\": \"received\"}",
+        "detail": "agent.main",
+        "documentation": {}
+    }
+]
