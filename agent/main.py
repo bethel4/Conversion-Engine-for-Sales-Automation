@@ -64,8 +64,20 @@ async def webhook(request: Request):
         data = {"raw": (await request.body()).decode("utf-8", errors="replace")}
 
     print("WEBHOOK RECEIVED:", data)
-    return {"status": "received"}
 
+    email = data.get("email")
+    phone = data.get("from") or data.get("phone")
+
+    if not email:
+        return {"status": "ignored", "reason": "no email provided"}
+
+    try:
+        result = create_contact(email=email, phone=phone)
+        print("HUBSPOT RESULT:", result)
+        return {"status": "created", "hubspot": result}
+    except Exception as e:
+        print("HUBSPOT ERROR:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/contacts")
 def create_contact_route(payload: ContactIn):
