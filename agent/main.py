@@ -1,5 +1,6 @@
 import json
 import os
+from urllib.parse import parse_qs
 from typing import Any, Callable, Literal, Optional
 
 import requests
@@ -328,10 +329,9 @@ async def _read_sms_webhook_payload(request: Request) -> dict[str, Any]:
         return payload
 
     if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
-        form = await request.form()
-        payload: dict[str, Any] = {}
-        for key, value in form.multi_items():
-            payload[key] = str(value)
+        raw = (await request.body()).decode("utf-8", errors="replace")
+        parsed = parse_qs(raw, keep_blank_values=True)
+        payload = {key: values[-1] for key, values in parsed.items()}
         return payload
 
     raw = (await request.body()).decode("utf-8", errors="replace")
