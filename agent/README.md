@@ -1,5 +1,7 @@
 # Conversion Engine Agent
 
+For the full system overview (architecture + enrichment pipeline + briefs), see `README.md` in the repo root.
+
 ## SMS handler
 
 This service now exposes an SMS flow for Africa's Talking:
