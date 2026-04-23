@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from agent.enrichment.briefs import produce_hiring_signal_brief
+from agent.enrichment.pipeline import run_hiring_signal_enrichment
 from agent.enrichment.icp import classify_icp
 from agent.hubspot_mcp import write_booking_update, write_enriched_contact
 
@@ -109,6 +110,14 @@ class ProspectEnrichmentRequest(BaseModel):
     company_name: str = Field(..., min_length=1)
     phone: Optional[str] = None
     domain: Optional[str] = None
+
+
+class HiringBriefRequest(BaseModel):
+    company_name: str = Field(..., min_length=1)
+    domain: Optional[str] = None
+    use_playwright: bool = False
+    out_dir: str = "data/briefs"
+    leadership_sources: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class EmailSendRequest(BaseModel):
@@ -539,6 +548,31 @@ def send_email_route(payload: EmailSendRequest):
 def enrich_prospect_route(payload: ProspectEnrichmentRequest):
     try:
         return enrich_and_write_contact(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        message = str(exc)
+        status_code = 500 if "not set" in message else 502
+        raise HTTPException(status_code=status_code, detail=message) from exc
+
+
+@app.post("/enrichment/hiring-brief")
+def generate_hiring_brief_route(payload: HiringBriefRequest):
+    """
+    Central Act II merger endpoint:
+    returns the merged brief schema + writes hiring_signal_brief_<company>_<date>.json.
+    """
+
+    try:
+        leadership_sources = payload.leadership_sources or None
+        result = run_hiring_signal_enrichment(
+            payload.company_name,
+            domain=payload.domain,
+            leadership_sources=leadership_sources,
+            out_dir=payload.out_dir,
+            use_playwright=payload.use_playwright,
+        )
+        return {"status": "ok", **result}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:

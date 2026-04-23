@@ -62,6 +62,22 @@ python3 -m agent.enrichment.briefs --company "Consolety" --out-dir data/briefs
 Output example:
 - `data/briefs/hiring_signal_brief_consolety_2026-04-23.json`
 
+API (FastAPI):
+- Start the service: `uvicorn agent.main:app --reload --port 8000`
+- Generate brief: `POST /enrichment/hiring-brief` with body `{ "company_name": "Consolety", "domain": null, "use_playwright": false, "out_dir": "data/briefs" }`
+
+Example:
+```bash
+curl -s -X POST http://127.0.0.1:8000/enrichment/hiring-brief \\
+  -H "Content-Type: application/json" \\
+  -d '{"company_name":"Consolety","use_playwright":false,"out_dir":"data/briefs"}'
+```
+
+Central merger CLI (no API):
+```bash
+python3 -m agent.enrichment.pipeline --company "Consolety" --out-dir data/briefs
+```
+
 ### 3) Generate the competitor gap brief
 
 ```bash
@@ -145,4 +161,3 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ## Service API (SMS)
 
 The FastAPI service and SMS routes are documented in `agent/README.md`.
-

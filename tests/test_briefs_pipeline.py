@@ -80,8 +80,11 @@ class TestBriefsPipeline(unittest.TestCase):
             layoffs_dataset_path=self.layoffs_path,
         )
         self.assertIn("company", brief)
-        self.assertIn("_confidence", brief["jobs"])
+        self.assertIn("_confidence", brief["company"])
         self.assertIn("_confidence", brief["funding"])
+        self.assertIn("_confidence", brief["jobs"])
+        self.assertIn("_confidence", brief["layoffs"])
+        self.assertIn("_confidence", brief["leadership_change"])
         self.assertEqual(brief["funding"]["funded"], True)
 
         out = briefs.write_hiring_signal_brief_file(brief, out_dir=self.tmp / "briefs")
