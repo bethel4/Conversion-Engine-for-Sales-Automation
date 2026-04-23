@@ -9,6 +9,7 @@ import statistics
 import subprocess
 import sys
 import uuid
+from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,6 +32,33 @@ class TaskTrialRecord:
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _strip_quotes(value: str) -> str:
+    value = value.strip()
+    if len(value) >= 2 and ((value[0] == value[-1]) and value[0] in {"'", '"'}):
+        return value[1:-1]
+    return value
+
+
+def _load_env_file(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    env: dict[str, str] = {}
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+        env[key] = _strip_quotes(value)
+    return env
 
 
 def _read_json(path: Path) -> Any:
@@ -263,23 +291,48 @@ def _extract_cost_usd(sim: dict[str, Any]) -> Optional[float]:
     return cost
 
 
-def _run_subprocess(cmd: list[str], cwd: Path, env: dict[str, str]) -> None:
+@dataclass(frozen=True)
+class SubprocessResult:
+    cmd: list[str]
+    returncode: int
+    output_tail: str
+
+
+class SubprocessError(RuntimeError):
+    def __init__(self, *, cmd: list[str], returncode: int, output_tail: str):
+        super().__init__(f"Command failed (exit {returncode}): {' '.join(cmd)}")
+        self.cmd = cmd
+        self.returncode = returncode
+        self.output_tail = output_tail
+
+
+def _run_subprocess(cmd: list[str], cwd: Path, env: dict[str, str]) -> SubprocessResult:
     try:
-        subprocess.run(
+        process = subprocess.Popen(
             cmd,
             cwd=str(cwd),
             env=env,
-            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
+            bufsize=1,
         )
     except FileNotFoundError as exc:
         raise RuntimeError(
             f"Command not found: {cmd[0]}. Is it installed and on PATH?"
         ) from exc
-    except subprocess.CalledProcessError as exc:
-        raise RuntimeError(f"Command failed (exit {exc.returncode}): {' '.join(cmd)}") from exc
+
+    tail = deque(maxlen=400)
+    assert process.stdout is not None
+    for line in process.stdout:
+        sys.stdout.write(line)
+        tail.append(line.rstrip("\n"))
+    process.wait()
+
+    output_tail = "\n".join(tail)
+    if process.returncode != 0:
+        raise SubprocessError(cmd=cmd, returncode=process.returncode, output_tail=output_tail)
+    return SubprocessResult(cmd=cmd, returncode=process.returncode, output_tail=output_tail)
 
 
 def _tau2_data_dir(tau2_repo: Path, env: dict[str, str]) -> Path:
@@ -445,27 +498,86 @@ def _append_score_log(path: Path, entry: dict[str, Any]) -> None:
     path.write_text(json.dumps(existing, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def _langfuse_client_if_configured() -> Any:
-    if not (os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY")):
+def _langfuse_client_if_configured(*, require: bool) -> Any:
+    public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
+    secret_key = os.getenv("LANGFUSE_SECRET_KEY")
+    base_url = os.getenv("LANGFUSE_BASE_URL")
+    environment = os.getenv("LANGFUSE_TRACING_ENVIRONMENT") or "development"
+
+    if not public_key or not secret_key:
+        if require:
+            raise RuntimeError(
+                "Langfuse credentials missing. Set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY."
+            )
         return None
     try:
-        from langfuse import get_client  # type: ignore
+        from langfuse import Langfuse  # type: ignore
     except Exception:
+        if require:
+            raise RuntimeError("Langfuse SDK not installed. `pip install langfuse`.")
         return None
     try:
-        return get_client()
-    except Exception:
+        return Langfuse(
+            public_key=public_key,
+            secret_key=secret_key,
+            base_url=base_url,
+            environment=environment,
+        )
+    except Exception as exc:
+        if require:
+            raise RuntimeError(f"Failed to initialize Langfuse client: {exc}") from exc
         return None
 
 
-def _langfuse_log_task_run(langfuse: Any, record: TaskTrialRecord) -> Optional[str]:
+def _as_langfuse_metadata(value: dict[str, Any]) -> dict[str, str]:
+    # Metadata values are most useful as short strings and are commonly capped.
+    out: dict[str, str] = {}
+    for k, v in value.items():
+        if v is None:
+            continue
+        s = str(v)
+        out[k] = s[:200]
+    return out
+
+
+def _truncate_for_langfuse(value: Any, *, max_depth: int = 4, max_list: int = 30, max_str: int = 800) -> Any:
+    if max_depth <= 0:
+        return "<truncated>"
+    if value is None or isinstance(value, (int, float, bool)):
+        return value
+    if isinstance(value, str):
+        return value if len(value) <= max_str else (value[:max_str] + "…")
+    if isinstance(value, list):
+        truncated = [_truncate_for_langfuse(v, max_depth=max_depth - 1, max_list=max_list, max_str=max_str) for v in value[:max_list]]
+        if len(value) > max_list:
+            truncated.append(f"<truncated {len(value) - max_list} items>")
+        return truncated
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for k, v in list(value.items())[:200]:
+            out[str(k)] = _truncate_for_langfuse(v, max_depth=max_depth - 1, max_list=max_list, max_str=max_str)
+        if len(value) > 200:
+            out["<truncated_keys>"] = len(value) - 200
+        return out
+    return _truncate_for_langfuse(str(value), max_depth=max_depth, max_list=max_list, max_str=max_str)
+
+
+def _langfuse_log_task_run(
+    *,
+    langfuse: Any,
+    run_id: str,
+    record: TaskTrialRecord,
+    save_to: str,
+    tau2_cmd: list[str],
+    sim_raw: dict[str, Any],
+) -> Optional[str]:
     if langfuse is None:
         return None
 
-    # Create a deterministic Langfuse trace id so re-runs can correlate if desired.
+    # One Langfuse trace per task+trial. Use a deterministic trace id for stability.
     try:
         trace_id = langfuse.create_trace_id(
-            seed=f"{record.partition}:{record.model}:{record.task_id}:{record.trial}"
+            seed=f"{run_id}:{record.partition}:{record.model}:{save_to}:{record.task_id}:{record.trial}"
         )
     except Exception:
         trace_id = None
@@ -474,18 +586,42 @@ def _langfuse_log_task_run(langfuse: Any, record: TaskTrialRecord) -> Optional[s
     try:
         with langfuse.start_as_current_observation(
             as_type="span",
-            name="tau2.task_run",
+            name="tau2_retail",
             trace_context=trace_context,
+            input={
+                "tau2_cmd": tau2_cmd,
+                "task_id": record.task_id,
+                "trial": record.trial,
+                "model": record.model,
+                "partition": record.partition,
+                "save_to": save_to,
+                "raw_summary": _truncate_for_langfuse(sim_raw),
+            },
+            metadata=_as_langfuse_metadata(
+                {
+                    "task_id": record.task_id,
+                    "trial": record.trial,
+                    "model": record.model,
+                    "partition": record.partition,
+                    "save_to": save_to,
+                }
+            ),
         ) as span:
             actual_trace_id = getattr(span, "trace_id", None) or trace_id
+            status_message = (
+                "passed"
+                if record.passed is True
+                else ("failed" if record.passed is False else "unknown")
+            )
             span.update(
-                metadata={"task_id": record.task_id, "model": record.model, "trial": record.trial},
                 output={
                     "passed": record.passed,
                     "latency_ms": record.latency_ms,
                     "tokens": record.tokens,
                     "cost_usd": record.cost_usd,
                 },
+                level="ERROR" if record.passed is False else "DEFAULT",
+                status_message=status_message,
             )
     except Exception:
         # Langfuse must never break the benchmark run.
@@ -498,6 +634,48 @@ def _langfuse_flush(langfuse: Any) -> None:
         return
     try:
         langfuse.flush()
+    except Exception:
+        return
+
+
+def _langfuse_log_subprocess_error(
+    *,
+    langfuse: Any,
+    run_id: str,
+    model: str,
+    partition: str,
+    save_to: str,
+    tau2_cmd: list[str],
+    error: str,
+    output_tail: str,
+) -> None:
+    if langfuse is None:
+        return
+    try:
+        trace_id = langfuse.create_trace_id(seed=f"{run_id}:cli_error:{partition}:{model}:{save_to}")
+    except Exception:
+        trace_id = None
+    trace_context = {"trace_id": trace_id} if isinstance(trace_id, str) else None
+    try:
+        with langfuse.start_as_current_observation(
+            as_type="span",
+            name="tau2_retail",
+            trace_context=trace_context,
+            input={
+                "tau2_cmd": tau2_cmd,
+                "model": model,
+                "partition": partition,
+                "save_to": save_to,
+            },
+            metadata=_as_langfuse_metadata(
+                {"task_id": "tau2_cli", "trial": 0, "model": model, "partition": partition, "save_to": save_to}
+            ),
+        ) as span:
+            span.update(
+                output={"subprocess_error": error, "output_tail": output_tail},
+                level="ERROR",
+                status_message="subprocess_failed",
+            )
     except Exception:
         return
 
@@ -516,7 +694,42 @@ def run_tau2_eval(
     log_level: str,
     env: dict[str, str],
 ) -> Path:
-    cmd = [
+    cmd = _build_tau2_run_cmd(
+        domain=domain,
+        agent_llm=agent_llm,
+        user_llm=user_llm,
+        task_split_name=task_split_name,
+        num_tasks=num_tasks,
+        num_trials=num_trials,
+        max_concurrency=max_concurrency,
+        save_to=save_to,
+        log_level=log_level,
+    )
+    _run_subprocess(cmd, cwd=tau2_repo, env=env)
+
+    run_dir = _tau2_data_dir(tau2_repo, env) / "simulations" / save_to
+    results_path = run_dir / "results.json"
+    if not results_path.exists():
+        raise RuntimeError(
+            f"tau2 completed but no results found at {results_path}. "
+            "Check `TAU2_DATA_DIR` and `--save-to`."
+        )
+    return run_dir
+
+
+def _build_tau2_run_cmd(
+    *,
+    domain: str,
+    agent_llm: str,
+    user_llm: str,
+    task_split_name: str,
+    num_tasks: int,
+    num_trials: int,
+    max_concurrency: int,
+    save_to: str,
+    log_level: str,
+) -> list[str]:
+    return [
         "uv",
         "run",
         "tau2",
@@ -542,26 +755,18 @@ def run_tau2_eval(
         "--auto-resume",
     ]
 
-    _run_subprocess(cmd, cwd=tau2_repo, env=env)
-
-    run_dir = _tau2_data_dir(tau2_repo, env) / "simulations" / save_to
-    results_path = run_dir / "results.json"
-    if not results_path.exists():
-        raise RuntimeError(
-            f"tau2 completed but no results found at {results_path}. "
-            "Check `TAU2_DATA_DIR` and `--save-to`."
-        )
-    return run_dir
-
 
 def _records_from_simulations(
     *,
     simulations: list[dict[str, Any]],
     model: str,
     partition: str,
+    save_to: str,
+    tau2_cmd: list[str],
+    run_id: str,
     langfuse: Any,
 ) -> list[TaskTrialRecord]:
-    records: list[TaskTrialRecord] = []
+    extracted: list[tuple[str, int, dict[str, Any], Optional[bool], Optional[float], Optional[int], str, Optional[float]]] = []
     fallback_timestamp = _utc_now_iso()
     for sim in simulations:
         task_id = _extract_task_id(sim) or "unknown"
@@ -571,35 +776,55 @@ def _records_from_simulations(
         tokens = _extract_tokens(sim)
         timestamp = _extract_timestamp(sim) or fallback_timestamp
         cost_usd = _extract_cost_usd(sim)
+        extracted.append((task_id, trial, sim, passed, latency_ms, tokens, timestamp, cost_usd))
 
-        record = TaskTrialRecord(
-            task_id=task_id,
-            trial=trial,
-            model=model,
-            partition=partition,
-            passed=passed,
-            latency_ms=latency_ms,
-            tokens=tokens,
-            trace_id=uuid.uuid4().hex,
-            timestamp=timestamp,
-            cost_usd=cost_usd,
-        )
-        langfuse_trace_id = _langfuse_log_task_run(langfuse, record)
-        if isinstance(langfuse_trace_id, str) and langfuse_trace_id:
+    # Assign trials for any simulation records that don't carry an explicit trial index.
+    by_task: dict[str, list[tuple[str, int, dict[str, Any], Optional[bool], Optional[float], Optional[int], str, Optional[float]]]] = {}
+    for item in extracted:
+        by_task.setdefault(item[0], []).append(item)
+
+    records: list[TaskTrialRecord] = []
+    for task_id, items in by_task.items():
+        for idx, (task_id, trial, sim_raw, passed, latency_ms, tokens, timestamp, cost_usd) in enumerate(
+            items, start=1
+        ):
+            resolved_trial = trial if trial > 0 else idx
             record = TaskTrialRecord(
-                task_id=record.task_id,
-                trial=record.trial,
-                model=record.model,
-                partition=record.partition,
-                passed=record.passed,
-                latency_ms=record.latency_ms,
-                tokens=record.tokens,
-                trace_id=langfuse_trace_id,
-                timestamp=record.timestamp,
-                cost_usd=record.cost_usd,
+                task_id=task_id,
+                trial=resolved_trial,
+                model=model,
+                partition=partition,
+                passed=passed,
+                latency_ms=latency_ms,
+                tokens=tokens,
+                trace_id=uuid.uuid4().hex,
+                timestamp=timestamp,
+                cost_usd=cost_usd,
             )
-        records.append(record)
-    return _assign_trials_if_missing(records)
+            langfuse_trace_id = _langfuse_log_task_run(
+                langfuse=langfuse,
+                run_id=run_id,
+                record=record,
+                save_to=save_to,
+                tau2_cmd=tau2_cmd,
+                sim_raw=sim_raw,
+            )
+            if isinstance(langfuse_trace_id, str) and langfuse_trace_id:
+                record = TaskTrialRecord(
+                    task_id=record.task_id,
+                    trial=record.trial,
+                    model=record.model,
+                    partition=record.partition,
+                    passed=record.passed,
+                    latency_ms=record.latency_ms,
+                    tokens=record.tokens,
+                    trace_id=langfuse_trace_id,
+                    timestamp=record.timestamp,
+                    cost_usd=record.cost_usd,
+                )
+            records.append(record)
+
+    return records
 
 
 def _write_logs(
@@ -664,12 +889,20 @@ def _write_logs(
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    if sys.version_info < (3, 10):
+        raise RuntimeError("This script requires Python 3.10+")
     if sys.version_info < (3, 11):
-        raise RuntimeError("This script requires Python 3.11+")
+        print("Warning: Python 3.11+ is recommended.", file=sys.stderr)
 
     parser = argparse.ArgumentParser(description="Run a tau2 baseline via subprocess (uv).")
     parser.add_argument("--tau2-repo", type=Path, required=True, help="Path to a local tau2-bench repo checkout.")
     parser.add_argument("--output-dir", type=Path, default=Path("eval"), help="Directory to write logs to.")
+    parser.add_argument(
+        "--env-file",
+        type=Path,
+        default=Path(".env"),
+        help="Optional dotenv file to load (default: .env).",
+    )
     parser.add_argument("--partition", default="retail", help="tau2 domain/partition to run (default: retail).")
     parser.add_argument("--agent-llm", default="gpt-4.1", help="Agent LLM identifier for tau2.")
     parser.add_argument("--user-llm", default="gpt-4.1", help="User simulator LLM identifier for tau2.")
@@ -698,82 +931,165 @@ def main(argv: Optional[list[str]] = None) -> int:
     if not tau2_repo.exists():
         raise RuntimeError(f"--tau2-repo does not exist: {tau2_repo}")
 
+    env = dict(os.environ)
+    env_file = args.env_file.expanduser().resolve()
+    env.update(_load_env_file(env_file))
+
+    # Ensure the local process environment sees the dotenv values too.
+    for k, v in env.items():
+        os.environ.setdefault(k, v)
+
     _ensure_llm_api_key_present()
 
-    env = dict(os.environ)
     if args.tau2_data_dir is not None:
         env["TAU2_DATA_DIR"] = str(args.tau2_data_dir.expanduser().resolve())
 
-    langfuse = _langfuse_client_if_configured()
-    if args.require_langfuse and langfuse is None:
-        raise RuntimeError(
-            "Langfuse not configured. Set LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY "
-            "and ensure `langfuse` is installed."
-        )
+    run_id = uuid.uuid4().hex
+    langfuse = _langfuse_client_if_configured(require=args.require_langfuse)
 
-    if args.smoke_first:
-        smoke_dir = run_tau2_eval(
-            tau2_repo=tau2_repo,
+    try:
+        if args.smoke_first:
+            smoke_cmd = _build_tau2_run_cmd(
+                domain=args.partition,
+                agent_llm=args.agent_llm,
+                user_llm=args.user_llm,
+                task_split_name=args.task_split_name,
+                num_tasks=1,
+                num_trials=1,
+                max_concurrency=1,
+                save_to=args.smoke_save_to,
+                log_level=args.log_level,
+            )
+            try:
+                smoke_dir = run_tau2_eval(
+                    tau2_repo=tau2_repo,
+                    domain=args.partition,
+                    agent_llm=args.agent_llm,
+                    user_llm=args.user_llm,
+                    num_tasks=1,
+                    num_trials=1,
+                    save_to=args.smoke_save_to,
+                    task_split_name=args.task_split_name,
+                    max_concurrency=1,
+                    log_level=args.log_level,
+                    env=env,
+                )
+                _maybe_convert_results_to_dir(tau2_repo, smoke_dir, env)
+            except SubprocessError as exc:
+                _langfuse_log_subprocess_error(
+                    langfuse=langfuse,
+                    run_id=run_id,
+                    model=args.agent_llm,
+                    partition=args.partition,
+                    save_to=args.smoke_save_to,
+                    tau2_cmd=smoke_cmd,
+                    error=str(exc),
+                    output_tail=exc.output_tail,
+                )
+                raise
+
+            smoke_sims = _load_simulations(smoke_dir)
+            smoke_records = _records_from_simulations(
+                simulations=smoke_sims,
+                model=args.agent_llm,
+                partition=args.partition,
+                save_to=args.smoke_save_to,
+                tau2_cmd=smoke_cmd,
+                run_id=run_id,
+                langfuse=langfuse,
+            )
+            _write_logs(
+                output_dir=args.output_dir,
+                records=smoke_records,
+                model=args.agent_llm,
+                partition=args.partition,
+                n_tasks=1,
+                n_trials=1,
+            )
+
+        baseline_cmd = _build_tau2_run_cmd(
             domain=args.partition,
             agent_llm=args.agent_llm,
             user_llm=args.user_llm,
-            num_tasks=1,
-            num_trials=1,
-            save_to=args.smoke_save_to,
             task_split_name=args.task_split_name,
-            max_concurrency=1,
+            num_tasks=args.n_tasks,
+            num_trials=args.n_trials,
+            max_concurrency=args.max_concurrency,
+            save_to=args.save_to,
             log_level=args.log_level,
-            env=env,
         )
-        _maybe_convert_results_to_dir(tau2_repo, smoke_dir, env)
-        smoke_sims = _load_simulations(smoke_dir)
-        smoke_records = _records_from_simulations(
-            simulations=smoke_sims,
+
+        try:
+            run_dir = run_tau2_eval(
+                tau2_repo=tau2_repo,
+                domain=args.partition,
+                agent_llm=args.agent_llm,
+                user_llm=args.user_llm,
+                num_tasks=args.n_tasks,
+                num_trials=args.n_trials,
+                save_to=args.save_to,
+                task_split_name=args.task_split_name,
+                max_concurrency=args.max_concurrency,
+                log_level=args.log_level,
+                env=env,
+            )
+            _maybe_convert_results_to_dir(tau2_repo, run_dir, env)
+        except SubprocessError as exc:
+            _langfuse_log_subprocess_error(
+                langfuse=langfuse,
+                run_id=run_id,
+                model=args.agent_llm,
+                partition=args.partition,
+                save_to=args.save_to,
+                tau2_cmd=baseline_cmd,
+                error=str(exc),
+                output_tail=exc.output_tail,
+            )
+            _append_score_log(
+                args.output_dir / "score_log.json",
+                {
+                    "partition": args.partition,
+                    "model": args.agent_llm,
+                    "n_tasks": args.n_tasks,
+                    "n_trials": args.n_trials,
+                    "pass_at_1": None,
+                    "ci_95": None,
+                    "cost_per_run_usd": None,
+                    "p50_latency_ms": None,
+                    "p95_latency_ms": None,
+                    "run_at": _utc_now_iso(),
+                    "error": str(exc),
+                },
+            )
+            raise
+
+        sims = _load_simulations(run_dir)
+        records = _records_from_simulations(
+            simulations=sims,
             model=args.agent_llm,
             partition=args.partition,
+            save_to=args.save_to,
+            tau2_cmd=baseline_cmd,
+            run_id=run_id,
             langfuse=langfuse,
         )
         _write_logs(
             output_dir=args.output_dir,
-            records=smoke_records,
+            records=records,
             model=args.agent_llm,
             partition=args.partition,
-            n_tasks=1,
-            n_trials=1,
+            n_tasks=args.n_tasks,
+            n_trials=args.n_trials,
         )
+    except SubprocessError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        _langfuse_flush(langfuse)
 
-    run_dir = run_tau2_eval(
-        tau2_repo=tau2_repo,
-        domain=args.partition,
-        agent_llm=args.agent_llm,
-        user_llm=args.user_llm,
-        num_tasks=args.n_tasks,
-        num_trials=args.n_trials,
-        save_to=args.save_to,
-        task_split_name=args.task_split_name,
-        max_concurrency=args.max_concurrency,
-        log_level=args.log_level,
-        env=env,
-    )
-
-    _maybe_convert_results_to_dir(tau2_repo, run_dir, env)
-    sims = _load_simulations(run_dir)
-    records = _records_from_simulations(
-        simulations=sims,
-        model=args.agent_llm,
-        partition=args.partition,
-        langfuse=langfuse,
-    )
-    _write_logs(
-        output_dir=args.output_dir,
-        records=records,
-        model=args.agent_llm,
-        partition=args.partition,
-        n_tasks=args.n_tasks,
-        n_trials=args.n_trials,
-    )
-
-    _langfuse_flush(langfuse)
     return 0
 
 
