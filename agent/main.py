@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="Conversion Engine Agent")
@@ -46,9 +46,25 @@ class ContactIn(BaseModel):
     phone: Optional[str] = None
 
 
+@app.get("/")
+def root():
+    return {"status": "running"}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/webhook")
+async def webhook(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {"raw": (await request.body()).decode("utf-8", errors="replace")}
+
+    print("WEBHOOK RECEIVED:", data)
+    return {"status": "received"}
 
 
 @app.post("/contacts")
