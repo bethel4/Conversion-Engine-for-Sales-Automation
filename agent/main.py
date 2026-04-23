@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any, Callable, Literal, Optional
 
@@ -16,7 +17,9 @@ if load_dotenv is not None:
 app = FastAPI(title="Conversion Engine Agent")
 
 RESEND_API_URL = "https://api.resend.com/emails"
+AFRICASTALKING_SMS_API_URL = "https://api.africastalking.com/version1/messaging"
 EmailEventType = Literal["reply", "bounce"]
+SMSEventType = Literal["reply"]
 
 
 def _hubspot_api_key() -> str:
@@ -38,6 +41,28 @@ def _resend_from_email() -> str:
     if not from_email:
         raise RuntimeError("RESEND_FROM_EMAIL is not set")
     return from_email
+
+
+def _africas_talking_username() -> str:
+    username = os.getenv("AFRICASTALKING_USERNAME")
+    if not username:
+        raise RuntimeError("AFRICASTALKING_USERNAME is not set")
+    return username
+
+
+def _africas_talking_api_key() -> str:
+    api_key = os.getenv("AFRICASTALKING_API_KEY")
+    if not api_key:
+        raise RuntimeError("AFRICASTALKING_API_KEY is not set")
+    return api_key
+
+
+def _africas_talking_sender_id() -> Optional[str]:
+    return os.getenv("AFRICASTALKING_SENDER_ID")
+
+
+def _africas_talking_sms_api_url() -> str:
+    return os.getenv("AFRICASTALKING_SMS_API_URL", AFRICASTALKING_SMS_API_URL)
 
 
 def create_contact(email: str, phone: Optional[str] = None):
@@ -92,7 +117,29 @@ class EmailEvent(BaseModel):
     raw_payload: dict[str, Any]
 
 
+class SMSSendRequest(BaseModel):
+    to: list[str] = Field(..., min_length=1)
+    message: str = Field(..., min_length=1)
+    prior_email_reply_received: bool = Field(
+        ...,
+        description="SMS is a warm-lead channel and can only be used after a prior email reply.",
+    )
+    sender_id: Optional[str] = None
+
+
+class SMSEvent(BaseModel):
+    event_type: SMSEventType
+    message_id: str
+    sender: str
+    recipient: Optional[str] = None
+    text: str
+    link_id: Optional[str] = None
+    received_at: Optional[str] = None
+    raw_payload: dict[str, Any]
+
+
 EmailEventHandler = Callable[[EmailEvent], None]
+SMSEventHandler = Callable[[SMSEvent], None]
 
 
 def _default_email_event_handler(event: EmailEvent) -> None:
@@ -100,7 +147,13 @@ def _default_email_event_handler(event: EmailEvent) -> None:
     print("EMAIL EVENT:", event.model_dump())
 
 
+def _default_sms_event_handler(event: SMSEvent) -> None:
+    # Default behavior is explicit and observable until a downstream handler is attached.
+    print("SMS EVENT:", event.model_dump())
+
+
 email_event_handler: EmailEventHandler = _default_email_event_handler
+sms_event_handler: SMSEventHandler = _default_sms_event_handler
 
 
 def set_email_event_handler(handler: EmailEventHandler) -> None:
@@ -109,8 +162,18 @@ def set_email_event_handler(handler: EmailEventHandler) -> None:
     email_event_handler = handler
 
 
+def set_sms_event_handler(handler: SMSEventHandler) -> None:
+    # Downstream systems can register their own callback without changing the webhook route.
+    global sms_event_handler
+    sms_event_handler = handler
+
+
 def emit_email_event(event: EmailEvent) -> None:
     email_event_handler(event)
+
+
+def emit_sms_event(event: SMSEvent) -> None:
+    sms_event_handler(event)
 
 
 def send_email(payload: EmailSendRequest) -> dict[str, Any]:
@@ -140,6 +203,43 @@ def send_email(payload: EmailSendRequest) -> dict[str, Any]:
         raise RuntimeError(f"Resend error {response.status_code}: {response.text}")
 
     return response.json()
+
+
+def send_sms_to_warm_lead(payload: SMSSendRequest) -> dict[str, Any]:
+    # SMS is intentionally gated behind a prior email reply so it is never used for cold outreach.
+    if not payload.prior_email_reply_received:
+        raise PermissionError("SMS is only allowed for warm leads after a prior email reply")
+
+    headers = {
+        "Accept": "application/json",
+        "apiKey": _africas_talking_api_key(),
+    }
+    data = {
+        "username": _africas_talking_username(),
+        "to": ",".join(payload.to),
+        "message": payload.message,
+    }
+    sender_id = payload.sender_id or _africas_talking_sender_id()
+    if sender_id:
+        data["from"] = sender_id
+
+    try:
+        response = requests.post(
+            _africas_talking_sms_api_url(),
+            data=data,
+            headers=headers,
+            timeout=20,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Africa's Talking send failed: {exc}") from exc
+
+    if not response.ok:
+        raise RuntimeError(f"Africa's Talking error {response.status_code}: {response.text}")
+
+    try:
+        return response.json()
+    except ValueError:
+        return {"raw": response.text}
 
 
 def _extract_webhook_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -198,6 +298,52 @@ def _parse_email_event(payload: dict[str, Any]) -> EmailEvent:
     raise ValueError(f"Unsupported email webhook event type: {event_type}")
 
 
+def _parse_sms_event(payload: dict[str, Any]) -> SMSEvent:
+    sender = payload.get("from") or payload.get("sender")
+    text = payload.get("text") or payload.get("message")
+    message_id = payload.get("id") or payload.get("messageId") or payload.get("message_id")
+    if not sender or not text:
+        raise ValueError("SMS webhook payload is missing sender or text")
+    if not message_id:
+        message_id = f"{sender}:{text}"
+
+    return SMSEvent(
+        event_type="reply",
+        message_id=str(message_id),
+        sender=str(sender),
+        recipient=str(payload["to"]) if payload.get("to") else None,
+        text=str(text),
+        link_id=str(payload["linkId"]) if payload.get("linkId") else None,
+        received_at=str(payload["date"]) if payload.get("date") else None,
+        raw_payload=payload,
+    )
+
+
+async def _read_sms_webhook_payload(request: Request) -> dict[str, Any]:
+    content_type = request.headers.get("content-type", "").lower()
+    if "application/json" in content_type:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            raise ValueError("Malformed SMS webhook payload")
+        return payload
+
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form = await request.form()
+        payload: dict[str, Any] = {}
+        for key, value in form.multi_items():
+            payload[key] = str(value)
+        return payload
+
+    raw = (await request.body()).decode("utf-8", errors="replace")
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        raise ValueError("Malformed SMS webhook payload") from None
+    if not isinstance(payload, dict):
+        raise ValueError("Malformed SMS webhook payload")
+    return payload
+
+
 @app.get("/")
 def root():
     return {"status": "running"}
@@ -242,6 +388,19 @@ def send_email_route(payload: EmailSendRequest):
         raise HTTPException(status_code=status_code, detail=message) from exc
 
 
+@app.post("/sms/send")
+def send_sms_route(payload: SMSSendRequest):
+    try:
+        result = send_sms_to_warm_lead(payload)
+        return {"status": "sent", "provider": "africas_talking", "result": result}
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        message = str(exc)
+        status_code = 500 if "not set" in message else 502
+        raise HTTPException(status_code=status_code, detail=message) from exc
+
+
 @app.post("/emails/webhook")
 async def email_webhook(request: Request):
     try:
@@ -268,6 +427,27 @@ async def email_webhook(request: Request):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Email event handling failed: {exc}") from exc
+
+
+@app.post("/sms/webhook")
+async def sms_webhook(request: Request):
+    try:
+        payload = await _read_sms_webhook_payload(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        event = _parse_sms_event(payload)
+        emit_sms_event(event)
+        return {
+            "status": "accepted",
+            "event_type": event.event_type,
+            "message_id": event.message_id,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"SMS event handling failed: {exc}") from exc
 
 
 @app.post("/contacts")
