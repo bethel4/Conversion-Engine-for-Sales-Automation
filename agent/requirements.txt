@@ -2,4 +2,9 @@ fastapi>=0.110,<1.0
 pydantic>=2,<3
 uvicorn[standard]>=0.27,<1.0
 requests>=2.31,<3
-langfuse
+python-dotenv>=1.0,<2
+langfuse>=2,<3
+beautifulsoup4>=4.12,<5
+lxml>=5,<6
+playwright>=1.44,<2
+httpx>=0.27,<1

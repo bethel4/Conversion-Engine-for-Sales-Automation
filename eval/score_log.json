@@ -1,0 +1,16 @@
+{
+  "avg_agent_cost": 0.0199,
+  "domain": "retail",
+  "evaluated_simulations": 150,
+  "git_commit": "d11a97072c49d093f7b5a3e4fe9da95b490d43ba",
+  "infra_error_count": 0,
+  "num_trials": 5,
+  "p50_latency_seconds": 105.9521,
+  "p95_latency_seconds": 551.6491,
+  "pass_at_1": 0.7267,
+  "pass_at_1_ci_95": [
+    0.6504,
+    0.7917
+  ],
+  "total_tasks": 30
+}

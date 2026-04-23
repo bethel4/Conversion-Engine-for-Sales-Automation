@@ -9,6 +9,10 @@ __pycache__/
 htmlcov/
 .venv/
 venv/
+data/
+data/cache.db
+data/processed/
+data/briefs/
 env/
 dist/
 build/

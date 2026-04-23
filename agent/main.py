@@ -7,6 +7,10 @@ import requests
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from agent.enrichment.briefs import produce_hiring_signal_brief
+from agent.enrichment.icp import classify_icp
+from agent.hubspot_mcp import write_booking_update, write_enriched_contact
+
 try:
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover
@@ -19,8 +23,10 @@ app = FastAPI(title="Conversion Engine Agent")
 
 RESEND_API_URL = "https://api.resend.com/emails"
 AFRICASTALKING_SMS_API_URL = "https://api.africastalking.com/version1/messaging"
+CALCOM_API_URL = "https://api.cal.com/v1/bookings"
 EmailEventType = Literal["reply", "bounce"]
 SMSEventType = Literal["reply"]
+CalendarEventType = Literal["booking_confirmed"]
 
 
 def _hubspot_api_key() -> str:
@@ -28,6 +34,17 @@ def _hubspot_api_key() -> str:
     if not api_key:
         raise RuntimeError("HUBSPOT_API_KEY is not set")
     return api_key
+
+
+def _calcom_api_key() -> str:
+    api_key = os.getenv("CALCOM_API_KEY")
+    if not api_key:
+        raise RuntimeError("CALCOM_API_KEY is not set")
+    return api_key
+
+
+def _calcom_api_url() -> str:
+    return os.getenv("CALCOM_API_URL", CALCOM_API_URL)
 
 
 def _resend_api_key() -> str:
@@ -67,34 +84,31 @@ def _africas_talking_sms_api_url() -> str:
 
 
 def create_contact(email: str, phone: Optional[str] = None):
-    url = "https://api.hubapi.com/crm/v3/objects/contacts"
-
-    headers = {
-        "Authorization": f"Bearer {_hubspot_api_key()}",
-        "Content-Type": "application/json"
+    enrichment = {
+        "segment": "unclassified",
+        "confidence": 0.0,
+        "pitch_angle": "exploratory_generic",
+        "reasoning": {},
     }
-
-    data = {
-        "properties": {
-            "email": email,
-            "phone": phone
-        }
-    }
-
-    try:
-        response = requests.post(url, json=data, headers=headers, timeout=20)
-    except requests.RequestException as exc:
-        raise RuntimeError(f"HubSpot request failed: {exc}") from exc
-
-    if not response.ok:
-        raise RuntimeError(f"HubSpot error {response.status_code}: {response.text}")
-
-    return response.json()
+    return write_enriched_contact(
+        email=email,
+        phone=phone,
+        company_name=None,
+        icp_segment="unclassified",
+        enrichment=enrichment,
+    )
 
 
 class ContactIn(BaseModel):
     email: str = Field(..., min_length=3)
     phone: Optional[str] = None
+
+
+class ProspectEnrichmentRequest(BaseModel):
+    email: str = Field(..., min_length=3)
+    company_name: str = Field(..., min_length=1)
+    phone: Optional[str] = None
+    domain: Optional[str] = None
 
 
 class EmailSendRequest(BaseModel):
@@ -139,8 +153,32 @@ class SMSEvent(BaseModel):
     raw_payload: dict[str, Any]
 
 
+class CalcomBookingRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    email: str = Field(..., min_length=3)
+    start: str = Field(..., min_length=1)
+    event_type_id: int
+    time_zone: str = Field(..., min_length=1)
+    title: Optional[str] = None
+    notes: Optional[str] = None
+    phone: Optional[str] = None
+    company_name: Optional[str] = None
+    language: str = "en"
+
+
+class CalendarEvent(BaseModel):
+    event_type: CalendarEventType
+    booking_id: str
+    email: str
+    booking_status: str
+    start_time: Optional[str] = None
+    title: Optional[str] = None
+    raw_payload: dict[str, Any]
+
+
 EmailEventHandler = Callable[[EmailEvent], None]
 SMSEventHandler = Callable[[SMSEvent], None]
+CalendarEventHandler = Callable[[CalendarEvent], None]
 
 
 def _default_email_event_handler(event: EmailEvent) -> None:
@@ -153,8 +191,14 @@ def _default_sms_event_handler(event: SMSEvent) -> None:
     print("SMS EVENT:", event.model_dump())
 
 
+def _default_calendar_event_handler(event: CalendarEvent) -> None:
+    # Default behavior is explicit and observable until a downstream handler is attached.
+    print("CALENDAR EVENT:", event.model_dump())
+
+
 email_event_handler: EmailEventHandler = _default_email_event_handler
 sms_event_handler: SMSEventHandler = _default_sms_event_handler
+calendar_event_handler: CalendarEventHandler = _default_calendar_event_handler
 
 
 def set_email_event_handler(handler: EmailEventHandler) -> None:
@@ -169,12 +213,22 @@ def set_sms_event_handler(handler: SMSEventHandler) -> None:
     sms_event_handler = handler
 
 
+def set_calendar_event_handler(handler: CalendarEventHandler) -> None:
+    # Downstream systems can register their own callback without changing the webhook route.
+    global calendar_event_handler
+    calendar_event_handler = handler
+
+
 def emit_email_event(event: EmailEvent) -> None:
     email_event_handler(event)
 
 
 def emit_sms_event(event: SMSEvent) -> None:
     sms_event_handler(event)
+
+
+def emit_calendar_event(event: CalendarEvent) -> None:
+    calendar_event_handler(event)
 
 
 def send_email(payload: EmailSendRequest) -> dict[str, Any]:
@@ -241,6 +295,69 @@ def send_sms_to_warm_lead(payload: SMSSendRequest) -> dict[str, Any]:
         return response.json()
     except ValueError:
         return {"raw": response.text}
+
+
+def enrich_and_write_contact(payload: ProspectEnrichmentRequest) -> dict[str, Any]:
+    brief = produce_hiring_signal_brief(payload.company_name, domain=payload.domain)
+    icp = classify_icp(brief)
+    enrichment = {
+        "segment": icp["segment"],
+        "confidence": icp["confidence"],
+        "pitch_angle": icp["pitch_angle"],
+        "scores": icp["scores"],
+        "reasoning": icp["reasoning"],
+        "disqualifiers": icp["disqualifiers"],
+        "signals": {
+            "funding": brief["funding"],
+            "jobs": brief["jobs"],
+            "layoffs": brief["layoffs"],
+            "leadership_change": brief["leadership_change"],
+            "ai_maturity": brief["ai_maturity"],
+            "tech_stack": brief["tech_stack"],
+        },
+        "meta": brief["meta"],
+    }
+    hubspot = write_enriched_contact(
+        email=payload.email,
+        phone=payload.phone,
+        company_name=payload.company_name,
+        icp_segment=icp["segment"],
+        enrichment=enrichment,
+    )
+    return {"hubspot": hubspot, "enrichment": enrichment}
+
+
+def create_calcom_booking(payload: CalcomBookingRequest) -> dict[str, Any]:
+    headers = {
+        "Authorization": f"Bearer {_calcom_api_key()}",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "eventTypeId": payload.event_type_id,
+        "start": payload.start,
+        "responses": {
+            "name": payload.name,
+            "email": payload.email,
+            "notes": payload.notes,
+        },
+        "timeZone": payload.time_zone,
+        "language": payload.language,
+        "title": payload.title,
+        "metadata": {
+            "phone": payload.phone,
+            "company_name": payload.company_name,
+        },
+    }
+
+    try:
+        response = requests.post(_calcom_api_url(), json=data, headers=headers, timeout=20)
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Cal.com booking failed: {exc}") from exc
+
+    if not response.ok:
+        raise RuntimeError(f"Cal.com error {response.status_code}: {response.text}")
+
+    return response.json()
 
 
 def _extract_webhook_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -320,6 +437,36 @@ def _parse_sms_event(payload: dict[str, Any]) -> SMSEvent:
     )
 
 
+def _parse_calendar_event(payload: dict[str, Any]) -> CalendarEvent:
+    event_type = str(payload.get("triggerEvent") or payload.get("type") or payload.get("event") or "")
+    normalized = event_type.lower()
+    data = _extract_webhook_payload(payload)
+    booking = data.get("booking") if isinstance(data.get("booking"), dict) else data
+    attendee = booking.get("attendee") if isinstance(booking.get("attendee"), dict) else {}
+    email = attendee.get("email") or booking.get("email")
+    booking_id = booking.get("id") or booking.get("uid") or payload.get("bookingId")
+    start_time = booking.get("startTime") or booking.get("start")
+    title = booking.get("title")
+    status = str(booking.get("status") or "confirmed").lower()
+
+    if "booking" not in normalized and "meeting" not in normalized:
+        raise ValueError(f"Unsupported calendar webhook event type: {event_type or 'unknown'}")
+    if status not in {"accepted", "confirmed", "completed"}:
+        raise ValueError(f"Unsupported calendar booking status: {status}")
+    if not email or not booking_id:
+        raise ValueError("Calendar webhook payload is missing attendee email or booking id")
+
+    return CalendarEvent(
+        event_type="booking_confirmed",
+        booking_id=str(booking_id),
+        email=str(email),
+        booking_status=status,
+        start_time=str(start_time) if start_time else None,
+        title=str(title) if title else None,
+        raw_payload=payload,
+    )
+
+
 async def _read_sms_webhook_payload(request: Request) -> dict[str, Any]:
     content_type = request.headers.get("content-type", "").lower()
     if "application/json" in content_type:
@@ -388,6 +535,28 @@ def send_email_route(payload: EmailSendRequest):
         raise HTTPException(status_code=status_code, detail=message) from exc
 
 
+@app.post("/crm/prospects/enrich")
+def enrich_prospect_route(payload: ProspectEnrichmentRequest):
+    try:
+        return enrich_and_write_contact(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        message = str(exc)
+        status_code = 500 if "not set" in message else 502
+        raise HTTPException(status_code=status_code, detail=message) from exc
+
+
+@app.post("/calendar/book")
+def create_booking_route(payload: CalcomBookingRequest):
+    try:
+        return {"status": "booked", "provider": "cal.com", "result": create_calcom_booking(payload)}
+    except RuntimeError as exc:
+        message = str(exc)
+        status_code = 500 if "not set" in message else 502
+        raise HTTPException(status_code=status_code, detail=message) from exc
+
+
 @app.post("/sms/send")
 def send_sms_route(payload: SMSSendRequest):
     try:
@@ -427,6 +596,46 @@ async def email_webhook(request: Request):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Email event handling failed: {exc}") from exc
+
+
+@app.post("/calendar/webhook")
+async def calendar_webhook(request: Request):
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raw = (await request.body()).decode("utf-8", errors="replace")
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "Malformed calendar webhook payload", "raw": raw},
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Malformed calendar webhook payload")
+
+    try:
+        event = _parse_calendar_event(payload)
+        emit_calendar_event(event)
+        hubspot = write_booking_update(
+            email=event.email,
+            booking_id=event.booking_id,
+            booking_status=event.booking_status,
+            booking_start_time=event.start_time,
+            booking_title=event.title,
+        )
+        return {
+            "status": "accepted",
+            "event_type": event.event_type,
+            "booking_id": event.booking_id,
+            "hubspot": hubspot,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        message = str(exc)
+        status_code = 500 if "not set" in message else 502
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Calendar event handling failed: {exc}") from exc
 
 
 @app.post("/sms/webhook")
