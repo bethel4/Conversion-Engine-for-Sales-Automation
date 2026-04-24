@@ -1,6 +1,695 @@
 [
     {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Iterable",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Callable",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Literal",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Iterable",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "argparse",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "argparse",
+        "description": "argparse",
+        "detail": "argparse",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timezone",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timedelta",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timezone",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timezone",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timezone",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timezone",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timedelta",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "sqlite3",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sqlite3",
+        "description": "sqlite3",
+        "detail": "sqlite3",
+        "documentation": {}
+    },
+    {
+        "label": "csv",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "csv",
+        "description": "csv",
+        "detail": "csv",
+        "documentation": {}
+    },
+    {
+        "label": "unicodedata",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "unicodedata",
+        "description": "unicodedata",
+        "detail": "unicodedata",
+        "documentation": {}
+    },
+    {
+        "label": "lru_cache",
+        "importPath": "functools",
+        "description": "functools",
+        "isExtraImport": true,
+        "detail": "functools",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "html",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "html",
+        "description": "html",
+        "detail": "html",
+        "documentation": {}
+    },
+    {
+        "label": "parse_qs",
+        "importPath": "urllib.parse",
+        "description": "urllib.parse",
+        "isExtraImport": true,
+        "detail": "urllib.parse",
+        "documentation": {}
+    },
+    {
         "label": "FastAPI",
+        "importPath": "fastapi",
+        "description": "fastapi",
+        "isExtraImport": true,
+        "detail": "fastapi",
+        "documentation": {}
+    },
+    {
+        "label": "HTTPException",
         "importPath": "fastapi",
         "description": "fastapi",
         "isExtraImport": true,
@@ -16,11 +705,1036 @@
         "documentation": {}
     },
     {
+        "label": "CORSMiddleware",
+        "importPath": "fastapi.middleware.cors",
+        "description": "fastapi.middleware.cors",
+        "isExtraImport": true,
+        "detail": "fastapi.middleware.cors",
+        "documentation": {}
+    },
+    {
+        "label": "BaseModel",
+        "importPath": "pydantic",
+        "description": "pydantic",
+        "isExtraImport": true,
+        "detail": "pydantic",
+        "documentation": {}
+    },
+    {
+        "label": "Field",
+        "importPath": "pydantic",
+        "description": "pydantic",
+        "isExtraImport": true,
+        "detail": "pydantic",
+        "documentation": {}
+    },
+    {
+        "label": "produce_hiring_signal_brief",
+        "importPath": "agent.enrichment.briefs",
+        "description": "agent.enrichment.briefs",
+        "isExtraImport": true,
+        "detail": "agent.enrichment.briefs",
+        "documentation": {}
+    },
+    {
+        "label": "run_hiring_signal_enrichment",
+        "importPath": "agent.enrichment.pipeline",
+        "description": "agent.enrichment.pipeline",
+        "isExtraImport": true,
+        "detail": "agent.enrichment.pipeline",
+        "documentation": {}
+    },
+    {
+        "label": "classify_icp",
+        "importPath": "agent.enrichment.icp",
+        "description": "agent.enrichment.icp",
+        "isExtraImport": true,
+        "detail": "agent.enrichment.icp",
+        "documentation": {}
+    },
+    {
+        "label": "log_event",
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "isExtraImport": true,
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "set_lifecycle_stage",
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "isExtraImport": true,
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "write_booking_update",
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "isExtraImport": true,
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "write_enriched_contact",
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "isExtraImport": true,
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "dataclass",
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "isExtraImport": true,
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "dataclass",
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "isExtraImport": true,
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "statistics",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "statistics",
+        "description": "statistics",
+        "detail": "statistics",
+        "documentation": {}
+    },
+    {
+        "label": "subprocess",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "subprocess",
+        "description": "subprocess",
+        "detail": "subprocess",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "uuid",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "uuid",
+        "description": "uuid",
+        "detail": "uuid",
+        "documentation": {}
+    },
+    {
+        "label": "deque",
+        "importPath": "collections",
+        "description": "collections",
+        "isExtraImport": true,
+        "detail": "collections",
+        "documentation": {}
+    },
+    {
+        "label": "tempfile",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "tempfile",
+        "description": "tempfile",
+        "detail": "tempfile",
+        "documentation": {}
+    },
+    {
+        "label": "unittest",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "unittest",
+        "description": "unittest",
+        "detail": "unittest",
+        "documentation": {}
+    },
+    {
+        "label": "briefs",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "competitor_gap",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "icp",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "phrasing",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "crunchbase",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "ai_maturity",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "cache",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "job_posts",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "leadership",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "layoffs",
+        "importPath": "agent.enrichment",
+        "description": "agent.enrichment",
+        "isExtraImport": true,
+        "detail": "agent.enrichment",
+        "documentation": {}
+    },
+    {
+        "label": "Mock",
+        "importPath": "unittest.mock",
+        "description": "unittest.mock",
+        "isExtraImport": true,
+        "detail": "unittest.mock",
+        "documentation": {}
+    },
+    {
+        "label": "patch",
+        "importPath": "unittest.mock",
+        "description": "unittest.mock",
+        "isExtraImport": true,
+        "detail": "unittest.mock",
+        "documentation": {}
+    },
+    {
+        "label": "Mock",
+        "importPath": "unittest.mock",
+        "description": "unittest.mock",
+        "isExtraImport": true,
+        "detail": "unittest.mock",
+        "documentation": {}
+    },
+    {
+        "label": "patch",
+        "importPath": "unittest.mock",
+        "description": "unittest.mock",
+        "isExtraImport": true,
+        "detail": "unittest.mock",
+        "documentation": {}
+    },
+    {
+        "label": "ThreadManager",
+        "importPath": "agent.thread_manager",
+        "description": "agent.thread_manager",
+        "isExtraImport": true,
+        "detail": "agent.thread_manager",
+        "documentation": {}
+    },
+    {
+        "label": "score_ai_maturity",
+        "kind": 2,
+        "importPath": "agent.enrichment.ai_maturity",
+        "description": "agent.enrichment.ai_maturity",
+        "peekOfCode": "def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:\n    \"\"\"\n    Act II: Score AI maturity (0–3) with per-signal justification.\n    This output is used to:\n    - Gate Segment 4 entirely (score must be >= 2)\n    - Control phrasing (assert vs hedge vs ask) based on confidence\n    Scoring uses 6 signals with weights (high/medium/low). Points are summed then mapped\n    to a 0–3 integer score. A full `justification.per_signal` is returned so the composer\n    can cite evidence without overclaiming.\n    Input signals (best-effort; missing keys treated as absent):",
+        "detail": "agent.enrichment.ai_maturity",
+        "documentation": {}
+    },
+    {
+        "label": "produce_hiring_signal_brief",
+        "kind": 2,
+        "importPath": "agent.enrichment.briefs",
+        "description": "agent.enrichment.briefs",
+        "peekOfCode": "def produce_hiring_signal_brief(\n    company_name: str,\n    *,\n    domain: str | None = None,\n    leadership_sources: list[dict[str, Any]] | None = None,\n    days_funding: int = 180,\n    days_jobs_back: int = 60,\n    days_layoffs: int = 120,\n    days_leadership: int = 90,\n    today: date | None = None,",
+        "detail": "agent.enrichment.briefs",
+        "documentation": {}
+    },
+    {
+        "label": "write_hiring_signal_brief_file",
+        "kind": 2,
+        "importPath": "agent.enrichment.briefs",
+        "description": "agent.enrichment.briefs",
+        "peekOfCode": "def write_hiring_signal_brief_file(\n    brief: dict[str, Any],\n    *,\n    out_dir: str | Path = \"data/briefs\",\n    filename_prefix: str = \"hiring_signal_brief\",\n) -> Path:\n    company = brief.get(\"company\", {}).get(\"name\") or \"company\"\n    safe = normalize_company_name(str(company)).replace(\" \", \"_\") or \"company\"\n    generated_at = brief.get(\"meta\", {}).get(\"generated_at\") or date.today().isoformat()\n    out_dir = Path(out_dir)",
+        "detail": "agent.enrichment.briefs",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.briefs",
+        "description": "agent.enrichment.briefs",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Produce hiring_signal_brief.json\")\n    parser.add_argument(\"--company\", required=True, help=\"Company name\")\n    parser.add_argument(\"--domain\", help=\"Optional domain (otherwise uses Crunchbase website)\")\n    parser.add_argument(\"--out-dir\", default=\"data/briefs\", help=\"Output directory for briefs\")\n    parser.add_argument(\"--use-playwright\", action=\"store_true\", help=\"Use Playwright if available\")\n    parser.add_argument(\"--jobs-html-file\", help=\"Use local HTML file instead of fetching\")\n    parser.add_argument(\n        \"--leadership-sources-file\",\n        help=\"Path to JSON file containing leadership sources list: [{text,date,source}, ...]\",",
+        "detail": "agent.enrichment.briefs",
+        "documentation": {}
+    },
+    {
+        "label": "cache_db_path",
+        "kind": 2,
+        "importPath": "agent.enrichment.cache",
+        "description": "agent.enrichment.cache",
+        "peekOfCode": "def cache_db_path() -> Path:\n    override = os.getenv(\"ENRICHMENT_CACHE_DB\")\n    if override:\n        return Path(override).expanduser()\n    return _repo_root() / \"data\" / \"cache.db\"\ndef get_cache(source: str, key: str, *, max_age_seconds: int = 24 * 3600) -> Any | None:\n    _init_db()\n    with _connect() as conn:\n        row = conn.execute(\n            \"SELECT value_json, cached_at FROM cache WHERE source=? AND key=?\",",
+        "detail": "agent.enrichment.cache",
+        "documentation": {}
+    },
+    {
+        "label": "get_cache",
+        "kind": 2,
+        "importPath": "agent.enrichment.cache",
+        "description": "agent.enrichment.cache",
+        "peekOfCode": "def get_cache(source: str, key: str, *, max_age_seconds: int = 24 * 3600) -> Any | None:\n    _init_db()\n    with _connect() as conn:\n        row = conn.execute(\n            \"SELECT value_json, cached_at FROM cache WHERE source=? AND key=?\",\n            (source, key),\n        ).fetchone()\n    if row is None:\n        return None\n    value_json, cached_at = row",
+        "detail": "agent.enrichment.cache",
+        "documentation": {}
+    },
+    {
+        "label": "set_cache",
+        "kind": 2,
+        "importPath": "agent.enrichment.cache",
+        "description": "agent.enrichment.cache",
+        "peekOfCode": "def set_cache(source: str, key: str, value: Any) -> None:\n    _init_db()\n    payload = json.dumps(value, ensure_ascii=False, separators=(\",\", \":\"))\n    now = datetime.now(timezone.utc).isoformat()\n    with _connect() as conn:\n        conn.execute(\n            \"INSERT OR REPLACE INTO cache (source, key, value_json, cached_at) VALUES (?,?,?,?)\",\n            (source, key, payload, now),\n        )\n        conn.commit()",
+        "detail": "agent.enrichment.cache",
+        "documentation": {}
+    },
+    {
+        "label": "list_cache",
+        "kind": 2,
+        "importPath": "agent.enrichment.cache",
+        "description": "agent.enrichment.cache",
+        "peekOfCode": "def list_cache(source: str, key_prefix: str) -> list[dict[str, Any]]:\n    \"\"\"\n    Returns rows for keys like \"{key_prefix}%\":\n      [{key, value, cached_at}, ...]\n    \"\"\"\n    _init_db()\n    like = f\"{key_prefix}%\"\n    with _connect() as conn:\n        rows = conn.execute(\n            \"SELECT key, value_json, cached_at FROM cache WHERE source=? AND key LIKE ?\",",
+        "detail": "agent.enrichment.cache",
+        "documentation": {}
+    },
+    {
+        "label": "produce_competitor_gap_brief",
+        "kind": 2,
+        "importPath": "agent.enrichment.competitor_gap",
+        "description": "agent.enrichment.competitor_gap",
+        "peekOfCode": "def produce_competitor_gap_brief(\n    company_name: str,\n    *,\n    hiring_brief: dict[str, Any] | None = None,\n    peers_limit: int = 10,\n    today: date | None = None,\n) -> dict[str, Any]:\n    \"\"\"\n    Produces competitor gap brief from local Crunchbase dataset (no paid APIs).\n    Output:",
+        "detail": "agent.enrichment.competitor_gap",
+        "documentation": {}
+    },
+    {
+        "label": "write_competitor_gap_brief_file",
+        "kind": 2,
+        "importPath": "agent.enrichment.competitor_gap",
+        "description": "agent.enrichment.competitor_gap",
+        "peekOfCode": "def write_competitor_gap_brief_file(\n    brief: dict[str, Any],\n    *,\n    out_dir: str | Path = \"data/briefs\",\n    filename_prefix: str = \"competitor_gap_brief\",\n) -> Path:\n    company = brief.get(\"company\", {}).get(\"name\") or \"company\"\n    safe = normalize_company_name(str(company)).replace(\" \", \"_\") or \"company\"\n    generated_at = brief.get(\"meta\", {}).get(\"generated_at\") or date.today().isoformat()\n    out_dir = Path(out_dir)",
+        "detail": "agent.enrichment.competitor_gap",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.competitor_gap",
+        "description": "agent.enrichment.competitor_gap",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Produce competitor_gap_brief.json\")\n    parser.add_argument(\"--company\", required=True, help=\"Company name\")\n    parser.add_argument(\"--out-dir\", default=\"data/briefs\", help=\"Output directory for briefs\")\n    parser.add_argument(\"--peers\", type=int, default=10, help=\"Max peers\")\n    args = parser.parse_args(argv)\n    hiring = produce_hiring_signal_brief(args.company)\n    hiring_path = write_hiring_signal_brief_file(hiring, out_dir=args.out_dir)\n    brief = produce_competitor_gap_brief(args.company, hiring_brief=hiring, peers_limit=args.peers)\n    path = write_competitor_gap_brief_file(brief, out_dir=args.out_dir)",
+        "detail": "agent.enrichment.competitor_gap",
+        "documentation": {}
+    },
+    {
+        "label": "AI_TECH_KEYWORDS",
+        "kind": 5,
+        "importPath": "agent.enrichment.competitor_gap",
+        "description": "agent.enrichment.competitor_gap",
+        "peekOfCode": "AI_TECH_KEYWORDS = (\n    \"tensorflow\",\n    \"pytorch\",\n    \"hugging face\",\n    \"openai\",\n    \"vertex ai\",\n    \"sagemaker\",\n    \"bedrock\",\n    \"mlflow\",\n    \"kubeflow\",",
+        "detail": "agent.enrichment.competitor_gap",
+        "documentation": {}
+    },
+    {
+        "label": "DATA_TECH_KEYWORDS",
+        "kind": 5,
+        "importPath": "agent.enrichment.competitor_gap",
+        "description": "agent.enrichment.competitor_gap",
+        "peekOfCode": "DATA_TECH_KEYWORDS = (\"snowflake\", \"bigquery\", \"redshift\", \"databricks\", \"dbt\", \"kafka\")\nMODERN_CLOUD_KEYWORDS = (\"kubernetes\", \"docker\", \"aws\", \"gcp\", \"google cloud\", \"azure\", \"cloudflare\")\ndef produce_competitor_gap_brief(\n    company_name: str,\n    *,\n    hiring_brief: dict[str, Any] | None = None,\n    peers_limit: int = 10,\n    today: date | None = None,\n) -> dict[str, Any]:\n    \"\"\"",
+        "detail": "agent.enrichment.competitor_gap",
+        "documentation": {}
+    },
+    {
+        "label": "MODERN_CLOUD_KEYWORDS",
+        "kind": 5,
+        "importPath": "agent.enrichment.competitor_gap",
+        "description": "agent.enrichment.competitor_gap",
+        "peekOfCode": "MODERN_CLOUD_KEYWORDS = (\"kubernetes\", \"docker\", \"aws\", \"gcp\", \"google cloud\", \"azure\", \"cloudflare\")\ndef produce_competitor_gap_brief(\n    company_name: str,\n    *,\n    hiring_brief: dict[str, Any] | None = None,\n    peers_limit: int = 10,\n    today: date | None = None,\n) -> dict[str, Any]:\n    \"\"\"\n    Produces competitor gap brief from local Crunchbase dataset (no paid APIs).",
+        "detail": "agent.enrichment.competitor_gap",
+        "documentation": {}
+    },
+    {
+        "label": "normalize_company_name",
+        "kind": 2,
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "peekOfCode": "def normalize_company_name(name: str) -> str:\n    \"\"\"\n    Normalization used for matching:\n    - lowercase (casefold)\n    - trim whitespace\n    - remove common punctuation\n    - collapse repeated whitespace\n    \"\"\"\n    if not name:\n        return \"\"",
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "build_firmographics_brief",
+        "kind": 2,
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "peekOfCode": "def build_firmographics_brief(\n    crunchbase_record: dict[str, Any], days: int = 180, *, today: \"date | None\" = None\n) -> dict[str, Any]:\n    \"\"\"\n    Produces a compact, stable-shaped payload for downstream enrichment/classification:\n      { crunchbase: {...}, firmographics: {...}, funding: {...} }\n    \"\"\"\n    return {\n        \"crunchbase\": {\n            \"id\": crunchbase_record.get(\"id\"),",
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "is_recently_funded",
+        "kind": 2,
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "peekOfCode": "def is_recently_funded(\n    crunchbase_record: dict[str, Any],\n    days: int = 180,\n    *,\n    today: \"date | None\" = None,\n) -> dict[str, Any]:\n    \"\"\"\n    Returns funding recency signal:\n      { funded, days_ago, amount_usd, round_type, confidence }\n    Confidence buckets:",
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "load_crunchbase_dataset",
+        "kind": 2,
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "peekOfCode": "def load_crunchbase_dataset(path: str | Path) -> list[dict[str, Any]]:\n    dataset_path = Path(path)\n    if not dataset_path.exists():\n        raise FileNotFoundError(f\"Crunchbase dataset not found at: {dataset_path}\")\n    suffix = dataset_path.suffix.lower()\n    if suffix in {\".csv\"}:\n        with dataset_path.open(newline=\"\", encoding=\"utf-8\") as f:\n            reader = csv.DictReader(f)\n            return [dict(row) for row in reader]\n    if suffix in {\".json\", \".jsonl\", \".ndjson\"}:",
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "build_name_index",
+        "kind": 2,
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "peekOfCode": "def build_name_index(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:\n    index: dict[str, dict[str, Any]] = {}\n    for record in records:\n        name = _extract_company_name(record)\n        if not name:\n            continue\n        key = normalize_company_name(name)\n        if not key:\n            continue\n        index.setdefault(key, record)",
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "lookup_company",
+        "kind": 2,
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "peekOfCode": "def lookup_company(name: str) -> dict[str, Any] | None:\n    normalized = normalize_company_name(name)\n    if not normalized:\n        return None\n    dataset_path = _resolve_dataset_path()\n    cache_key = f\"{Path(dataset_path).name}:{normalized}\"\n    try:\n        from .cache import get_cache, set_cache\n    except Exception:  # pragma: no cover\n        get_cache = None  # type: ignore[assignment]",
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Local Crunchbase ODM lookup\")\n    parser.add_argument(\"--name\", required=True, help=\"Company name to look up\")\n    parser.add_argument(\n        \"--dataset-path\",\n        help=\"Optional override path (also supports $CRUNCHBASE_ODM_PATH)\",\n    )\n    parser.add_argument(\n        \"--brief\",\n        action=\"store_true\",",
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "classify_icp",
+        "kind": 2,
+        "importPath": "agent.enrichment.icp",
+        "description": "agent.enrichment.icp",
+        "peekOfCode": "def classify_icp(\n    hiring_brief: dict[str, Any],\n    *,\n    threshold: float = 0.60,\n) -> dict[str, Any]:\n    \"\"\"\n    Lightweight ICP classifier with abstention.\n    Segments:\n      - segment_1: recently funded (Series A/B)\n      - segment_2: restructuring / layoffs",
+        "detail": "agent.enrichment.icp",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.icp",
+        "description": "agent.enrichment.icp",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Classify ICP segment from hiring_signal_brief.json\")\n    parser.add_argument(\"--brief\", required=True, help=\"Path to hiring_signal_brief JSON\")\n    parser.add_argument(\"--threshold\", type=float, default=0.60, help=\"Abstention threshold\")\n    args = parser.parse_args(argv)\n    brief = json.loads(Path(args.brief).read_text(encoding=\"utf-8\"))\n    result = classify_icp(brief, threshold=args.threshold)\n    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))\n    return 0\nif __name__ == \"__main__\":",
+        "detail": "agent.enrichment.icp",
+        "documentation": {}
+    },
+    {
+        "label": "scrape_job_posts",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def scrape_job_posts(\n    domain: str,\n    *,\n    company_name: str | None = None,\n    days_back: int = 60,\n    today: date | None = None,\n    use_playwright: bool = False,\n    html: str | None = None,\n) -> dict[str, Any]:\n    \"\"\"",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "guess_careers_urls",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def guess_careers_urls(domain: str) -> list[str]:\n    d = domain.strip().rstrip(\"/\")\n    if not d:\n        return []\n    if not re.match(r\"^https?://\", d):\n        base = f\"https://{d}\"\n    else:\n        base = d\n        d = re.sub(r\"^https?://\", \"\", d).split(\"/\", 1)[0]\n    return [",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "extract_job_titles",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def extract_job_titles(html: str) -> list[str]:\n    if BeautifulSoup is None:\n        return _extract_job_titles_fallback(html or \"\")\n    soup = BeautifulSoup(html or \"\", \"lxml\")\n    candidates: list[str] = []\n    # Common ATS markers (Greenhouse, Lever, Workable, etc.)\n    selectors = [\n        \"[data-automation='jobTitle']\",\n        \"[data-qa='posting-name']\",\n        \".posting-title\",",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "classify_job_titles",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def classify_job_titles(titles: Iterable[str]) -> dict[str, int]:\n    total = 0\n    engineering = 0\n    ai_ml = 0\n    for title in titles:\n        title = title.strip()\n        if not title:\n            continue\n        total += 1\n        if is_engineering_role(title):",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "compute_velocity_60d",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def compute_velocity_60d(\n    company_key: str,\n    *,\n    current_engineering_roles: int,\n    today: date,\n    days_back: int = 60,\n) -> float | None:\n    target = today - timedelta(days=days_back)\n    rows = list_cache(\"job_posts_snapshot\", f\"{company_key}:\")\n    best_count: int | None = None",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "is_engineering_role",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def is_engineering_role(title: str) -> bool:\n    t = title.casefold()\n    return any(k in t for k in ENGINEERING_KEYWORDS)\ndef is_ai_ml_role(title: str) -> bool:\n    t = title.casefold()\n    return any(k in t for k in AI_ML_KEYWORDS)\ndef _signal_strength(engineering_roles: int) -> str:\n    if engineering_roles >= 10:\n        return \"strong\"\n    if engineering_roles >= 5:",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "is_ai_ml_role",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def is_ai_ml_role(title: str) -> bool:\n    t = title.casefold()\n    return any(k in t for k in AI_ML_KEYWORDS)\ndef _signal_strength(engineering_roles: int) -> str:\n    if engineering_roles >= 10:\n        return \"strong\"\n    if engineering_roles >= 5:\n        return \"medium\"\n    if engineering_roles >= 2:\n        return \"weak\"",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "fetch_html",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def fetch_html(url: str, *, use_playwright: bool = False, timeout_seconds: int = 15) -> str:\n    if use_playwright:\n        html = _fetch_with_playwright(url, timeout_seconds=timeout_seconds)\n        if html is None:\n            raise RuntimeError(\n                \"Playwright requested but not available. Install dependencies and run \"\n                \"`python -m playwright install chromium`.\"\n            )\n        return html\n    resp = requests.get(",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Job-post scraping signal\")\n    parser.add_argument(\"--domain\", required=True, help=\"Company domain (e.g. stripe.com)\")\n    parser.add_argument(\"--company\", help=\"Optional company name (for caching key)\")\n    parser.add_argument(\"--use-playwright\", action=\"store_true\", help=\"Use Playwright if available\")\n    parser.add_argument(\"--html-file\", help=\"Parse a local saved HTML file instead of fetching\")\n    args = parser.parse_args(argv)\n    html = None\n    if args.html_file:\n        html = Path(args.html_file).read_text(encoding=\"utf-8\")",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "ENGINEERING_KEYWORDS",
+        "kind": 5,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "ENGINEERING_KEYWORDS = (\n    \"engineer\",\n    \"engineering\",\n    \"developer\",\n    \"development\",\n    \"devops\",\n    \"sre\",\n    \"site reliability\",\n    \"platform\",\n    \"backend\",",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "AI_ML_KEYWORDS",
+        "kind": 5,
+        "importPath": "agent.enrichment.job_posts",
+        "description": "agent.enrichment.job_posts",
+        "peekOfCode": "AI_ML_KEYWORDS = (\n    \"machine learning\",\n    \"ml \",\n    \" ml\",\n    \"ai \",\n    \" ai\",\n    \"artificial intelligence\",\n    \"data scientist\",\n    \"applied scientist\",\n    \"research scientist\",",
+        "detail": "agent.enrichment.job_posts",
+        "documentation": {}
+    },
+    {
+        "label": "load_layoffs_dataset",
+        "kind": 2,
+        "importPath": "agent.enrichment.layoffs",
+        "description": "agent.enrichment.layoffs",
+        "peekOfCode": "def load_layoffs_dataset(path: str | Path) -> list[dict[str, Any]]:\n    dataset_path = Path(path)\n    if not dataset_path.exists():\n        raise FileNotFoundError(f\"layoffs.fyi dataset not found at: {dataset_path}\")\n    with dataset_path.open(newline=\"\", encoding=\"utf-8\") as f:\n        reader = csv.DictReader(f)\n        return [dict(row) for row in reader]\ndef check_layoffs(\n    company_name: str,\n    days: int = 120,",
+        "detail": "agent.enrichment.layoffs",
+        "documentation": {}
+    },
+    {
+        "label": "check_layoffs",
+        "kind": 2,
+        "importPath": "agent.enrichment.layoffs",
+        "description": "agent.enrichment.layoffs",
+        "peekOfCode": "def check_layoffs(\n    company_name: str,\n    days: int = 120,\n    *,\n    dataset_path: str | Path | None = None,\n    today: date | None = None,\n) -> dict[str, Any]:\n    \"\"\"\n    Returns:\n      { had_layoff, days_ago, headcount_cut, percentage_cut, confidence, segment_implication }",
+        "detail": "agent.enrichment.layoffs",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.layoffs",
+        "description": "agent.enrichment.layoffs",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Local layoffs.fyi lookup\")\n    parser.add_argument(\"--name\", required=True, help=\"Company name to check\")\n    parser.add_argument(\"--days\", type=int, default=120, help=\"Lookback window in days\")\n    parser.add_argument(\"--dataset-path\", help=\"Optional override CSV path\")\n    args = parser.parse_args(argv)\n    result = check_layoffs(\n        args.name,\n        days=args.days,\n        dataset_path=args.dataset_path,",
+        "detail": "agent.enrichment.layoffs",
+        "documentation": {}
+    },
+    {
+        "label": "detect_leadership_change",
+        "kind": 2,
+        "importPath": "agent.enrichment.leadership",
+        "description": "agent.enrichment.leadership",
+        "peekOfCode": "def detect_leadership_change(\n    company_name: str,\n    *,\n    days: int = 90,\n    today: date | None = None,\n    sources: list[dict[str, Any]] | None = None,\n) -> dict[str, Any]:\n    \"\"\"\n    Best-effort local detector over provided sources.\n    sources: [{\"text\": \"...\", \"date\": \"YYYY-MM-DD\", \"source\": \"url-or-name\"}, ...]",
+        "detail": "agent.enrichment.leadership",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.leadership",
+        "description": "agent.enrichment.leadership",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Leadership-change signal (local sources)\")\n    parser.add_argument(\"--company\", required=True, help=\"Company name\")\n    parser.add_argument(\"--days\", type=int, default=90, help=\"Lookback window\")\n    parser.add_argument(\n        \"--sources-json\",\n        help='JSON list of sources, e.g. \\'[{\"text\":\"...\",\"date\":\"2026-03-01\",\"source\":\"...\"}]\\'',\n    )\n    args = parser.parse_args(argv)\n    sources = json.loads(args.sources_json) if args.sources_json else None",
+        "detail": "agent.enrichment.leadership",
+        "documentation": {}
+    },
+    {
+        "label": "LEADERSHIP_ROLES",
+        "kind": 5,
+        "importPath": "agent.enrichment.leadership",
+        "description": "agent.enrichment.leadership",
+        "peekOfCode": "LEADERSHIP_ROLES = (\n    \"cto\",\n    \"chief technology officer\",\n    \"vp engineering\",\n    \"vice president engineering\",\n    \"head of engineering\",\n    \"chief architect\",\n    \"vp of engineering\",\n)\ndef detect_leadership_change(",
+        "detail": "agent.enrichment.leadership",
+        "documentation": {}
+    },
+    {
+        "label": "phrase_with_confidence",
+        "kind": 2,
+        "importPath": "agent.enrichment.phrasing",
+        "description": "agent.enrichment.phrasing",
+        "peekOfCode": "def phrase_with_confidence(\n    claim_template: str | dict[str, str],\n    evidence: dict[str, Any] | None,\n    confidence_level: str,\n) -> str:\n    \"\"\"\n    Generates language matched to evidence confidence:\n      - high: assert\n      - medium: hedge with observable fact\n      - low: ask instead of assert",
+        "detail": "agent.enrichment.phrasing",
+        "documentation": {}
+    },
+    {
+        "label": "audit_overclaiming",
+        "kind": 2,
+        "importPath": "agent.enrichment.phrasing",
+        "description": "agent.enrichment.phrasing",
+        "peekOfCode": "def audit_overclaiming(email_text: str, confidence_level: str) -> dict[str, Any]:\n    \"\"\"\n    Returns {ok, issues[]} for tone safety.\n    \"\"\"\n    text = (email_text or \"\")\n    level = (confidence_level or \"none\").casefold()\n    issues: list[str] = []\n    if level in {\"low\", \"none\"}:\n        t = text.casefold()\n        for w in BANNED_LOW_CONFIDENCE:",
+        "detail": "agent.enrichment.phrasing",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.phrasing",
+        "description": "agent.enrichment.phrasing",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Confidence-aware phrasing helper\")\n    parser.add_argument(\"--template\", required=True, help=\"Claim template (Python format string)\")\n    parser.add_argument(\"--confidence\", default=\"none\", help=\"high|medium|low|none\")\n    parser.add_argument(\"--evidence-json\", default=\"{}\", help=\"Evidence JSON dict for formatting\")\n    args = parser.parse_args(argv)\n    evidence = json.loads(args.evidence_json)\n    text = phrase_with_confidence(args.template, evidence, args.confidence)\n    audit = audit_overclaiming(text, args.confidence)\n    print(json.dumps({\"text\": text, \"audit\": audit}, ensure_ascii=False, indent=2, sort_keys=True))",
+        "detail": "agent.enrichment.phrasing",
+        "documentation": {}
+    },
+    {
+        "label": "BANNED_LOW_CONFIDENCE",
+        "kind": 5,
+        "importPath": "agent.enrichment.phrasing",
+        "description": "agent.enrichment.phrasing",
+        "peekOfCode": "BANNED_LOW_CONFIDENCE = (\n    \"aggressive\",\n    \"rapidly\",\n    \"exploding\",\n    \"surging\",\n    \"tripling\",\n    \"skyrocketing\",\n    \"massive growth\",\n)\nMULTIPLIER_PATTERNS = (",
+        "detail": "agent.enrichment.phrasing",
+        "documentation": {}
+    },
+    {
+        "label": "MULTIPLIER_PATTERNS",
+        "kind": 5,
+        "importPath": "agent.enrichment.phrasing",
+        "description": "agent.enrichment.phrasing",
+        "peekOfCode": "MULTIPLIER_PATTERNS = (\n    r\"\\b\\d+(\\.\\d+)?x\\b\",\n    r\"\\b\\d+(\\.\\d+)?\\s*×\\b\",\n    r\"\\btripled\\b\",\n    r\"\\bdoubled\\b\",\n)\ndef phrase_with_confidence(\n    claim_template: str | dict[str, str],\n    evidence: dict[str, Any] | None,\n    confidence_level: str,",
+        "detail": "agent.enrichment.phrasing",
+        "documentation": {}
+    },
+    {
+        "label": "run_hiring_signal_enrichment",
+        "kind": 2,
+        "importPath": "agent.enrichment.pipeline",
+        "description": "agent.enrichment.pipeline",
+        "peekOfCode": "def run_hiring_signal_enrichment(\n    company_name: str,\n    *,\n    domain: str | None = None,\n    leadership_sources: list[dict[str, Any]] | None = None,\n    out_dir: str | Path = \"data/briefs\",\n    today: date | None = None,\n    use_playwright: bool = False,\n    jobs_html: str | None = None,\n) -> dict[str, Any]:",
+        "detail": "agent.enrichment.pipeline",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "agent.enrichment.pipeline",
+        "description": "agent.enrichment.pipeline",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Run hiring signal enrichment pipeline (central merger)\")\n    parser.add_argument(\"--company\", required=True, help=\"Company name\")\n    parser.add_argument(\"--domain\", help=\"Optional domain override\")\n    parser.add_argument(\"--out-dir\", default=\"data/briefs\", help=\"Output directory\")\n    parser.add_argument(\"--use-playwright\", action=\"store_true\", help=\"Use Playwright for job scraping\")\n    parser.add_argument(\"--jobs-html-file\", help=\"Use local HTML file instead of fetching\")\n    parser.add_argument(\n        \"--leadership-sources-file\",\n        help=\"Path to JSON file containing leadership sources list: [{text,date,source}, ...]\",",
+        "detail": "agent.enrichment.pipeline",
+        "documentation": {}
+    },
+    {
+        "label": "build_enriched_contact_properties",
+        "kind": 2,
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "peekOfCode": "def build_enriched_contact_properties(\n    *,\n    email: str,\n    phone: str | None = None,\n    company_name: str | None = None,\n    icp_segment: str,\n    enrichment: dict[str, Any],\n) -> dict[str, Any]:\n    timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()\n    return {",
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "write_enriched_contact",
+        "kind": 2,
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "peekOfCode": "def write_enriched_contact(\n    *,\n    email: str,\n    phone: str | None = None,\n    company_name: str | None = None,\n    icp_segment: str,\n    enrichment: dict[str, Any],\n) -> dict[str, Any]:\n    properties = build_enriched_contact_properties(\n        email=email,",
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "write_booking_update",
+        "kind": 2,
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "peekOfCode": "def write_booking_update(\n    *,\n    email: str,\n    booking_id: str,\n    booking_status: str,\n    booking_start_time: str | None = None,\n    booking_title: str | None = None,\n) -> dict[str, Any]:\n    properties = {\n        \"email\": email,",
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "log_event",
+        "kind": 2,
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "peekOfCode": "def log_event(\n    *,\n    email: str | None = None,\n    phone: str | None = None,\n    event_type: str,\n    data: dict[str, Any] | None = None,\n    occurred_at: datetime | None = None,\n) -> dict[str, Any]:\n    \"\"\"\n    Act II/III: HubSpot conversation event logging.",
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "update_contact",
+        "kind": 2,
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "peekOfCode": "def update_contact(\n    *,\n    email: str,\n    properties: dict[str, Any],\n) -> dict[str, Any]:\n    \"\"\"\n    Upserts contact properties by email (used when lifecycle stage or key fields change).\n    \"\"\"\n    return _upsert_contact_by_email(email, properties)\ndef set_lifecycle_stage(",
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "set_lifecycle_stage",
+        "kind": 2,
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "peekOfCode": "def set_lifecycle_stage(\n    *,\n    email: str,\n    stage: str,\n) -> dict[str, Any]:\n    \"\"\"\n    Updates HubSpot `lifecyclestage` (standard property) for the contact.\n    Defaults are configurable via env so the demo can match the target HubSpot portal.\n    \"\"\"\n    stage_value = stage",
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "HUBSPOT_API_URL",
+        "kind": 5,
+        "importPath": "agent.hubspot_mcp",
+        "description": "agent.hubspot_mcp",
+        "peekOfCode": "HUBSPOT_API_URL = \"https://api.hubapi.com\"\ndef _hubspot_api_key() -> str:\n    api_key = os.getenv(\"HUBSPOT_API_KEY\")\n    if not api_key:\n        raise RuntimeError(\"HUBSPOT_API_KEY is not set\")\n    return api_key\ndef _headers() -> dict[str, str]:\n    return {\n        \"Authorization\": f\"Bearer {_hubspot_api_key()}\",\n        \"Content-Type\": \"application/json\",",
+        "detail": "agent.hubspot_mcp",
+        "documentation": {}
+    },
+    {
+        "label": "ContactIn",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class ContactIn(BaseModel):\n    email: str = Field(..., min_length=3)\n    phone: Optional[str] = None\nclass ProspectEnrichmentRequest(BaseModel):\n    email: str = Field(..., min_length=3)\n    company_name: str = Field(..., min_length=1)\n    phone: Optional[str] = None\n    domain: Optional[str] = None\n    leadership_sources: list[dict[str, Any]] = Field(default_factory=list)\nclass HiringBriefRequest(BaseModel):",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "ProspectEnrichmentRequest",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class ProspectEnrichmentRequest(BaseModel):\n    email: str = Field(..., min_length=3)\n    company_name: str = Field(..., min_length=1)\n    phone: Optional[str] = None\n    domain: Optional[str] = None\n    leadership_sources: list[dict[str, Any]] = Field(default_factory=list)\nclass HiringBriefRequest(BaseModel):\n    company_name: str = Field(..., min_length=1)\n    domain: Optional[str] = None\n    use_playwright: bool = False",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "HiringBriefRequest",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class HiringBriefRequest(BaseModel):\n    company_name: str = Field(..., min_length=1)\n    domain: Optional[str] = None\n    use_playwright: bool = False\n    out_dir: str = \"data/briefs\"\n    leadership_sources: list[dict[str, Any]] = Field(default_factory=list)\nclass CompetitorGapRequest(BaseModel):\n    company_name: str = Field(..., min_length=1)\n    hiring_brief: Optional[dict[str, Any]] = None\n    peers_limit: int = Field(10, ge=1, le=25)",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "CompetitorGapRequest",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class CompetitorGapRequest(BaseModel):\n    company_name: str = Field(..., min_length=1)\n    hiring_brief: Optional[dict[str, Any]] = None\n    peers_limit: int = Field(10, ge=1, le=25)\n    out_dir: str = \"data/briefs\"\nclass EmailSendRequest(BaseModel):\n    to: list[str] = Field(..., min_length=1)\n    subject: str = Field(..., min_length=1)\n    text: Optional[str] = None\n    html: Optional[str] = None",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "EmailSendRequest",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class EmailSendRequest(BaseModel):\n    to: list[str] = Field(..., min_length=1)\n    subject: str = Field(..., min_length=1)\n    text: Optional[str] = None\n    html: Optional[str] = None\n    from_email: Optional[str] = None\n    reply_to: Optional[str] = None\n    tags: list[dict[str, str]] = Field(default_factory=list)\nclass EmailEvent(BaseModel):\n    event_type: EmailEventType",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "EmailEvent",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class EmailEvent(BaseModel):\n    event_type: EmailEventType\n    message_id: str\n    sender: str\n    subject: Optional[str] = None\n    text: Optional[str] = None\n    html: Optional[str] = None\n    to: list[str] = Field(default_factory=list)\n    raw_payload: dict[str, Any]\nclass SMSSendRequest(BaseModel):",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "SMSSendRequest",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class SMSSendRequest(BaseModel):\n    to: list[str] = Field(..., min_length=1)\n    message: str = Field(..., min_length=1)\n    prior_email_reply_received: bool = Field(\n        ...,\n        description=\"SMS is a warm-lead channel and can only be used after a prior email reply.\",\n    )\n    sender_id: Optional[str] = None\nclass SMSEvent(BaseModel):\n    event_type: SMSEventType",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "SMSEvent",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class SMSEvent(BaseModel):\n    event_type: SMSEventType\n    message_id: str\n    sender: str\n    recipient: Optional[str] = None\n    text: str\n    link_id: Optional[str] = None\n    received_at: Optional[str] = None\n    raw_payload: dict[str, Any]\nclass CalcomBookingRequest(BaseModel):",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "CalcomBookingRequest",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class CalcomBookingRequest(BaseModel):\n    name: str = Field(..., min_length=1)\n    email: str = Field(..., min_length=3)\n    start: str = Field(..., min_length=1)\n    event_type_id: int\n    time_zone: str = Field(..., min_length=1)\n    title: Optional[str] = None\n    notes: Optional[str] = None\n    phone: Optional[str] = None\n    company_name: Optional[str] = None",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "CalendarEvent",
+        "kind": 6,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "class CalendarEvent(BaseModel):\n    event_type: CalendarEventType\n    booking_id: str\n    email: str\n    booking_status: str\n    start_time: Optional[str] = None\n    title: Optional[str] = None\n    raw_payload: dict[str, Any]\nEmailEventHandler = Callable[[EmailEvent], None]\nSMSEventHandler = Callable[[SMSEvent], None]",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "create_contact",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def create_contact(email: str, phone: Optional[str] = None):\n    enrichment = {\n        \"segment\": \"unclassified\",\n        \"confidence\": 0.0,\n        \"pitch_angle\": \"exploratory_generic\",\n        \"reasoning\": {},\n    }\n    return write_enriched_contact(\n        email=email,\n        phone=phone,",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "set_email_event_handler",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def set_email_event_handler(handler: EmailEventHandler) -> None:\n    # Downstream systems can register their own callback without changing the webhook route.\n    global email_event_handler\n    email_event_handler = handler\ndef set_sms_event_handler(handler: SMSEventHandler) -> None:\n    # Downstream systems can register their own callback without changing the webhook route.\n    global sms_event_handler\n    sms_event_handler = handler\ndef set_calendar_event_handler(handler: CalendarEventHandler) -> None:\n    # Downstream systems can register their own callback without changing the webhook route.",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "set_sms_event_handler",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def set_sms_event_handler(handler: SMSEventHandler) -> None:\n    # Downstream systems can register their own callback without changing the webhook route.\n    global sms_event_handler\n    sms_event_handler = handler\ndef set_calendar_event_handler(handler: CalendarEventHandler) -> None:\n    # Downstream systems can register their own callback without changing the webhook route.\n    global calendar_event_handler\n    calendar_event_handler = handler\ndef emit_email_event(event: EmailEvent) -> None:\n    email_event_handler(event)",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "set_calendar_event_handler",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def set_calendar_event_handler(handler: CalendarEventHandler) -> None:\n    # Downstream systems can register their own callback without changing the webhook route.\n    global calendar_event_handler\n    calendar_event_handler = handler\ndef emit_email_event(event: EmailEvent) -> None:\n    email_event_handler(event)\ndef emit_sms_event(event: SMSEvent) -> None:\n    sms_event_handler(event)\ndef emit_calendar_event(event: CalendarEvent) -> None:\n    calendar_event_handler(event)",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "emit_email_event",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def emit_email_event(event: EmailEvent) -> None:\n    email_event_handler(event)\ndef emit_sms_event(event: SMSEvent) -> None:\n    sms_event_handler(event)\ndef emit_calendar_event(event: CalendarEvent) -> None:\n    calendar_event_handler(event)\ndef send_email(payload: EmailSendRequest) -> dict[str, Any]:\n    if not payload.text and not payload.html:\n        raise RuntimeError(\"Email payload must include text or html content\")\n    headers = {",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "emit_sms_event",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def emit_sms_event(event: SMSEvent) -> None:\n    sms_event_handler(event)\ndef emit_calendar_event(event: CalendarEvent) -> None:\n    calendar_event_handler(event)\ndef send_email(payload: EmailSendRequest) -> dict[str, Any]:\n    if not payload.text and not payload.html:\n        raise RuntimeError(\"Email payload must include text or html content\")\n    headers = {\n        \"Authorization\": f\"Bearer {_resend_api_key()}\",\n        \"Content-Type\": \"application/json\",",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "emit_calendar_event",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def emit_calendar_event(event: CalendarEvent) -> None:\n    calendar_event_handler(event)\ndef send_email(payload: EmailSendRequest) -> dict[str, Any]:\n    if not payload.text and not payload.html:\n        raise RuntimeError(\"Email payload must include text or html content\")\n    headers = {\n        \"Authorization\": f\"Bearer {_resend_api_key()}\",\n        \"Content-Type\": \"application/json\",\n    }\n    data = {",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "send_email",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def send_email(payload: EmailSendRequest) -> dict[str, Any]:\n    if not payload.text and not payload.html:\n        raise RuntimeError(\"Email payload must include text or html content\")\n    headers = {\n        \"Authorization\": f\"Bearer {_resend_api_key()}\",\n        \"Content-Type\": \"application/json\",\n    }\n    data = {\n        \"from\": payload.from_email or _resend_from_email(),\n        \"to\": payload.to,",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "send_sms_to_warm_lead",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def send_sms_to_warm_lead(payload: SMSSendRequest) -> dict[str, Any]:\n    # SMS is intentionally gated behind a prior email reply so it is never used for cold outreach.\n    if not payload.prior_email_reply_received:\n        raise PermissionError(\"SMS is only allowed for warm leads after a prior email reply\")\n    headers = {\n        \"Accept\": \"application/json\",\n        \"apiKey\": _africas_talking_api_key(),\n    }\n    data = {\n        \"username\": _africas_talking_username(),",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "enrich_and_write_contact",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def enrich_and_write_contact(payload: ProspectEnrichmentRequest) -> dict[str, Any]:\n    leadership_sources = payload.leadership_sources or None\n    brief = produce_hiring_signal_brief(\n        payload.company_name,\n        domain=payload.domain,\n        leadership_sources=leadership_sources,\n    )\n    icp = classify_icp(brief)\n    enrichment = {\n        \"segment\": icp[\"segment\"],",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "create_calcom_booking",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def create_calcom_booking(payload: CalcomBookingRequest) -> dict[str, Any]:\n    headers = {\n        \"Authorization\": f\"Bearer {_calcom_api_key()}\",\n        \"Content-Type\": \"application/json\",\n    }\n    data = {\n        \"eventTypeId\": payload.event_type_id,\n        \"start\": payload.start,\n        \"responses\": {\n            \"name\": payload.name,",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "root",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def root():\n    return {\"status\": \"running\"}\n@app.get(\"/health\")\ndef health():\n    return {\"status\": \"ok\"}\n@app.post(\"/webhook\")\nasync def webhook(request: Request):\n    try:\n        data = await request.json()\n    except Exception:",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
         "label": "health",
         "kind": 2,
         "importPath": "agent.main",
         "description": "agent.main",
-        "peekOfCode": "def health():\n    return {\"status\": \"running\"}\n@app.post(\"/webhook\")\nasync def webhook(request: Request):\n    data = await request.json()\n    print(\"Incoming webhook:\", data)\n    return {\"status\": \"received\"}",
+        "peekOfCode": "def health():\n    return {\"status\": \"ok\"}\n@app.post(\"/webhook\")\nasync def webhook(request: Request):\n    try:\n        data = await request.json()\n    except Exception:\n        data = {\"raw\": (await request.body()).decode(\"utf-8\", errors=\"replace\")}\n    print(\"WEBHOOK RECEIVED:\", data)\n    email = data.get(\"email\")",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "send_email_route",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def send_email_route(payload: EmailSendRequest):\n    try:\n        result = send_email(payload)\n        for recipient in payload.to:\n            try:\n                log_event(\n                    email=recipient,\n                    event_type=\"email_sent\",\n                    data={\n                        \"provider\": \"resend\",",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "enrich_prospect_route",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def enrich_prospect_route(payload: ProspectEnrichmentRequest):\n    try:\n        return enrich_and_write_contact(payload)\n    except ValueError as exc:\n        raise HTTPException(status_code=400, detail=str(exc)) from exc\n    except RuntimeError as exc:\n        message = str(exc)\n        status_code = 500 if \"not set\" in message else 502\n        raise HTTPException(status_code=status_code, detail=message) from exc\n@app.post(\"/enrichment/hiring-brief\")",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "generate_hiring_brief_route",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def generate_hiring_brief_route(payload: HiringBriefRequest):\n    \"\"\"\n    Central Act II merger endpoint:\n    returns the merged brief schema + writes hiring_signal_brief_<company>_<date>.json.\n    \"\"\"\n    try:\n        leadership_sources = payload.leadership_sources or None\n        result = run_hiring_signal_enrichment(\n            payload.company_name,\n            domain=payload.domain,",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "generate_competitor_gap_route",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def generate_competitor_gap_route(payload: CompetitorGapRequest):\n    \"\"\"\n    Produces competitor_gap_brief_<company>_<date>.json (local-only; no paid APIs).\n    \"\"\"\n    try:\n        from agent.enrichment.competitor_gap import (\n            produce_competitor_gap_brief,\n            write_competitor_gap_brief_file,\n        )\n        brief = produce_competitor_gap_brief(",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "create_booking_route",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def create_booking_route(payload: CalcomBookingRequest):\n    try:\n        result = create_calcom_booking(payload)\n        try:\n            log_event(\n                email=payload.email,\n                event_type=\"call_booked\",\n                data={\n                    \"provider\": \"cal.com\",\n                    \"booking\": result,",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "send_sms_route",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def send_sms_route(payload: SMSSendRequest):\n    try:\n        result = send_sms_to_warm_lead(payload)\n        for recipient in payload.to:\n            try:\n                log_event(\n                    phone=recipient,\n                    event_type=\"sms_sent\",\n                    data={\n                        \"provider\": \"africas_talking\",",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "create_contact_route",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def create_contact_route(payload: ContactIn):\n    try:\n        return create_contact(payload.email, payload.phone)\n    except RuntimeError as exc:\n        message = str(exc)\n        status_code = 500 if \"HUBSPOT_API_KEY is not set\" in message else 502\n        raise HTTPException(status_code=status_code, detail=message) from exc",
         "detail": "agent.main",
         "documentation": {}
     },
@@ -29,8 +1743,260 @@
         "kind": 5,
         "importPath": "agent.main",
         "description": "agent.main",
-        "peekOfCode": "app = FastAPI()\n@app.get(\"/\")\ndef health():\n    return {\"status\": \"running\"}\n@app.post(\"/webhook\")\nasync def webhook(request: Request):\n    data = await request.json()\n    print(\"Incoming webhook:\", data)\n    return {\"status\": \"received\"}",
+        "peekOfCode": "app = FastAPI(title=\"Conversion Engine Agent\")\n# Local UI/dev convenience (Next.js dev server, etc.).\n# If you deploy behind a gateway, set `CORS_ALLOW_ORIGINS` explicitly.\n_cors_origins_raw = os.getenv(\n    \"CORS_ALLOW_ORIGINS\",\n    \"http://localhost:3000,http://127.0.0.1:3000\",\n)\n_cors_origins = [o.strip() for o in _cors_origins_raw.split(\",\") if o.strip()]\nif _cors_origins:\n    app.add_middleware(",
         "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "_cors_origins_raw",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "_cors_origins_raw = os.getenv(\n    \"CORS_ALLOW_ORIGINS\",\n    \"http://localhost:3000,http://127.0.0.1:3000\",\n)\n_cors_origins = [o.strip() for o in _cors_origins_raw.split(\",\") if o.strip()]\nif _cors_origins:\n    app.add_middleware(\n        CORSMiddleware,\n        allow_origins=_cors_origins,\n        allow_credentials=True,",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "_cors_origins",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "_cors_origins = [o.strip() for o in _cors_origins_raw.split(\",\") if o.strip()]\nif _cors_origins:\n    app.add_middleware(\n        CORSMiddleware,\n        allow_origins=_cors_origins,\n        allow_credentials=True,\n        allow_methods=[\"*\"],\n        allow_headers=[\"*\"],\n    )\nRESEND_API_URL = \"https://api.resend.com/emails\"",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "RESEND_API_URL",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "RESEND_API_URL = \"https://api.resend.com/emails\"\nAFRICASTALKING_SMS_API_URL = \"https://api.africastalking.com/version1/messaging\"\nCALCOM_API_URL = \"https://api.cal.com/v1/bookings\"\nEmailEventType = Literal[\"reply\", \"bounce\"]\nSMSEventType = Literal[\"reply\"]\nCalendarEventType = Literal[\"booking_confirmed\"]\ndef _hubspot_api_key() -> str:\n    api_key = os.getenv(\"HUBSPOT_API_KEY\")\n    if not api_key:\n        raise RuntimeError(\"HUBSPOT_API_KEY is not set\")",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "AFRICASTALKING_SMS_API_URL",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "AFRICASTALKING_SMS_API_URL = \"https://api.africastalking.com/version1/messaging\"\nCALCOM_API_URL = \"https://api.cal.com/v1/bookings\"\nEmailEventType = Literal[\"reply\", \"bounce\"]\nSMSEventType = Literal[\"reply\"]\nCalendarEventType = Literal[\"booking_confirmed\"]\ndef _hubspot_api_key() -> str:\n    api_key = os.getenv(\"HUBSPOT_API_KEY\")\n    if not api_key:\n        raise RuntimeError(\"HUBSPOT_API_KEY is not set\")\n    return api_key",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "CALCOM_API_URL",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "CALCOM_API_URL = \"https://api.cal.com/v1/bookings\"\nEmailEventType = Literal[\"reply\", \"bounce\"]\nSMSEventType = Literal[\"reply\"]\nCalendarEventType = Literal[\"booking_confirmed\"]\ndef _hubspot_api_key() -> str:\n    api_key = os.getenv(\"HUBSPOT_API_KEY\")\n    if not api_key:\n        raise RuntimeError(\"HUBSPOT_API_KEY is not set\")\n    return api_key\ndef _calcom_api_key() -> str:",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "EmailEventType",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "EmailEventType = Literal[\"reply\", \"bounce\"]\nSMSEventType = Literal[\"reply\"]\nCalendarEventType = Literal[\"booking_confirmed\"]\ndef _hubspot_api_key() -> str:\n    api_key = os.getenv(\"HUBSPOT_API_KEY\")\n    if not api_key:\n        raise RuntimeError(\"HUBSPOT_API_KEY is not set\")\n    return api_key\ndef _calcom_api_key() -> str:\n    api_key = os.getenv(\"CALCOM_API_KEY\")",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "SMSEventType",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "SMSEventType = Literal[\"reply\"]\nCalendarEventType = Literal[\"booking_confirmed\"]\ndef _hubspot_api_key() -> str:\n    api_key = os.getenv(\"HUBSPOT_API_KEY\")\n    if not api_key:\n        raise RuntimeError(\"HUBSPOT_API_KEY is not set\")\n    return api_key\ndef _calcom_api_key() -> str:\n    api_key = os.getenv(\"CALCOM_API_KEY\")\n    if not api_key:",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "CalendarEventType",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "CalendarEventType = Literal[\"booking_confirmed\"]\ndef _hubspot_api_key() -> str:\n    api_key = os.getenv(\"HUBSPOT_API_KEY\")\n    if not api_key:\n        raise RuntimeError(\"HUBSPOT_API_KEY is not set\")\n    return api_key\ndef _calcom_api_key() -> str:\n    api_key = os.getenv(\"CALCOM_API_KEY\")\n    if not api_key:\n        raise RuntimeError(\"CALCOM_API_KEY is not set\")",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "EmailEventHandler",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "EmailEventHandler = Callable[[EmailEvent], None]\nSMSEventHandler = Callable[[SMSEvent], None]\nCalendarEventHandler = Callable[[CalendarEvent], None]\ndef _default_email_event_handler(event: EmailEvent) -> None:\n    # Default behavior is explicit and observable until a downstream handler is attached.\n    print(\"EMAIL EVENT:\", event.model_dump())\ndef _default_sms_event_handler(event: SMSEvent) -> None:\n    # Default behavior is explicit and observable until a downstream handler is attached.\n    print(\"SMS EVENT:\", event.model_dump())\ndef _default_calendar_event_handler(event: CalendarEvent) -> None:",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "SMSEventHandler",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "SMSEventHandler = Callable[[SMSEvent], None]\nCalendarEventHandler = Callable[[CalendarEvent], None]\ndef _default_email_event_handler(event: EmailEvent) -> None:\n    # Default behavior is explicit and observable until a downstream handler is attached.\n    print(\"EMAIL EVENT:\", event.model_dump())\ndef _default_sms_event_handler(event: SMSEvent) -> None:\n    # Default behavior is explicit and observable until a downstream handler is attached.\n    print(\"SMS EVENT:\", event.model_dump())\ndef _default_calendar_event_handler(event: CalendarEvent) -> None:\n    # Default behavior is explicit and observable until a downstream handler is attached.",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "CalendarEventHandler",
+        "kind": 5,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "CalendarEventHandler = Callable[[CalendarEvent], None]\ndef _default_email_event_handler(event: EmailEvent) -> None:\n    # Default behavior is explicit and observable until a downstream handler is attached.\n    print(\"EMAIL EVENT:\", event.model_dump())\ndef _default_sms_event_handler(event: SMSEvent) -> None:\n    # Default behavior is explicit and observable until a downstream handler is attached.\n    print(\"SMS EVENT:\", event.model_dump())\ndef _default_calendar_event_handler(event: CalendarEvent) -> None:\n    # Default behavior is explicit and observable until a downstream handler is attached.\n    print(\"CALENDAR EVENT:\", event.model_dump())",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "ThreadMessage",
+        "kind": 6,
+        "importPath": "agent.thread_manager",
+        "description": "agent.thread_manager",
+        "peekOfCode": "class ThreadMessage:\n    thread_id: str\n    role: str\n    content: str\n    created_at: str\n    meta: dict[str, Any] | None = None\nclass ThreadManager:\n    \"\"\"\n    Act III (Probe category: Multi-thread leakage)\n    Stores conversation context keyed by `thread_id` and *only* retrieves context",
+        "detail": "agent.thread_manager",
+        "documentation": {}
+    },
+    {
+        "label": "ThreadManager",
+        "kind": 6,
+        "importPath": "agent.thread_manager",
+        "description": "agent.thread_manager",
+        "peekOfCode": "class ThreadManager:\n    \"\"\"\n    Act III (Probe category: Multi-thread leakage)\n    Stores conversation context keyed by `thread_id` and *only* retrieves context\n    for the requested thread. This prevents cross-thread contamination when the\n    agent is handling multiple prospects concurrently.\n    \"\"\"\n    def __init__(self, db_path: str | Path | None = None) -> None:\n        self._db_path = Path(db_path) if db_path is not None else default_threads_db_path()\n        self._init_db()",
+        "detail": "agent.thread_manager",
+        "documentation": {}
+    },
+    {
+        "label": "default_threads_db_path",
+        "kind": 2,
+        "importPath": "agent.thread_manager",
+        "description": "agent.thread_manager",
+        "peekOfCode": "def default_threads_db_path() -> Path:\n    override = os.getenv(\"THREADS_DB_PATH\")\n    if override:\n        return Path(override).expanduser()\n    return _repo_root() / \"data\" / \"threads.db\"\ndef _repo_root() -> Path:\n    return Path(__file__).resolve().parents[1]\ndef _json_dumps(value: Any) -> str | None:\n    if value is None:\n        return None",
+        "detail": "agent.thread_manager",
+        "documentation": {}
+    },
+    {
+        "label": "TaskTrialRecord",
+        "kind": 6,
+        "importPath": "eval.run_baseline",
+        "description": "eval.run_baseline",
+        "peekOfCode": "class TaskTrialRecord:\n    task_id: str\n    trial: int\n    model: str\n    partition: str\n    passed: Optional[bool]\n    latency_ms: Optional[float]\n    tokens: Optional[int]\n    trace_id: str\n    timestamp: str",
+        "detail": "eval.run_baseline",
+        "documentation": {}
+    },
+    {
+        "label": "SubprocessResult",
+        "kind": 6,
+        "importPath": "eval.run_baseline",
+        "description": "eval.run_baseline",
+        "peekOfCode": "class SubprocessResult:\n    cmd: list[str]\n    returncode: int\n    output_tail: str\nclass SubprocessError(RuntimeError):\n    def __init__(self, *, cmd: list[str], returncode: int, output_tail: str):\n        super().__init__(f\"Command failed (exit {returncode}): {' '.join(cmd)}\")\n        self.cmd = cmd\n        self.returncode = returncode\n        self.output_tail = output_tail",
+        "detail": "eval.run_baseline",
+        "documentation": {}
+    },
+    {
+        "label": "SubprocessError",
+        "kind": 6,
+        "importPath": "eval.run_baseline",
+        "description": "eval.run_baseline",
+        "peekOfCode": "class SubprocessError(RuntimeError):\n    def __init__(self, *, cmd: list[str], returncode: int, output_tail: str):\n        super().__init__(f\"Command failed (exit {returncode}): {' '.join(cmd)}\")\n        self.cmd = cmd\n        self.returncode = returncode\n        self.output_tail = output_tail\ndef _run_subprocess(cmd: list[str], cwd: Path, env: dict[str, str]) -> SubprocessResult:\n    try:\n        process = subprocess.Popen(\n            cmd,",
+        "detail": "eval.run_baseline",
+        "documentation": {}
+    },
+    {
+        "label": "run_tau2_eval",
+        "kind": 2,
+        "importPath": "eval.run_baseline",
+        "description": "eval.run_baseline",
+        "peekOfCode": "def run_tau2_eval(\n    *,\n    tau2_repo: Path,\n    domain: str,\n    agent_llm: str,\n    user_llm: str,\n    num_tasks: int,\n    num_trials: int,\n    save_to: str,\n    task_split_name: str,",
+        "detail": "eval.run_baseline",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "eval.run_baseline",
+        "description": "eval.run_baseline",
+        "peekOfCode": "def main(argv: Optional[list[str]] = None) -> int:\n    if sys.version_info < (3, 10):\n        raise RuntimeError(\"This script requires Python 3.10+\")\n    if sys.version_info < (3, 11):\n        print(\"Warning: Python 3.11+ is recommended.\", file=sys.stderr)\n    parser = argparse.ArgumentParser(description=\"Run a tau2 baseline via subprocess (uv).\")\n    parser.add_argument(\"--tau2-repo\", type=Path, required=True, help=\"Path to a local tau2-bench repo checkout.\")\n    parser.add_argument(\"--output-dir\", type=Path, default=Path(\"eval\"), help=\"Directory to write logs to.\")\n    parser.add_argument(\n        \"--env-file\",",
+        "detail": "eval.run_baseline",
+        "documentation": {}
+    },
+    {
+        "label": "_SIM_FILENAME_RE",
+        "kind": 5,
+        "importPath": "eval.run_baseline",
+        "description": "eval.run_baseline",
+        "peekOfCode": "_SIM_FILENAME_RE = re.compile(r\"^sim_(\\d+)\\.json$\")\ndef _sim_sort_key(path: Path) -> tuple[int, str]:\n    m = _SIM_FILENAME_RE.match(path.name)\n    if m:\n        return (int(m.group(1)), path.name)\n    return (10**9, path.name)\ndef _load_simulations(run_dir: Path) -> list[dict[str, Any]]:\n    sims_dir = run_dir / \"simulations\"\n    if sims_dir.is_dir():\n        sim_paths = sorted(sims_dir.glob(\"*.json\"), key=_sim_sort_key)",
+        "detail": "eval.run_baseline",
+        "documentation": {}
+    },
+    {
+        "label": "fetch_job_listing",
+        "kind": 2,
+        "importPath": "signal.fetch_job_listing",
+        "description": "signal.fetch_job_listing",
+        "peekOfCode": "def fetch_job_listing(url: str, *, headless: bool, timeout_ms: int) -> dict[str, Any]:\n    try:\n        from playwright.sync_api import sync_playwright  # type: ignore\n    except Exception as exc:\n        raise RuntimeError(\n            \"Playwright is not installed. Install with `pip install playwright` and run `playwright install`.\"\n        ) from exc\n    with sync_playwright() as p:\n        browser = p.chromium.launch(headless=headless)\n        try:",
+        "detail": "signal.fetch_job_listing",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "signal.fetch_job_listing",
+        "description": "signal.fetch_job_listing",
+        "peekOfCode": "def main(argv: Optional[list[str]] = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Fetch a single job listing page and output JSON (Playwright).\")\n    parser.add_argument(\"--url\", required=True, help=\"Job listing URL to fetch.\")\n    parser.add_argument(\"--output\", type=Path, default=None, help=\"Optional JSON output file path.\")\n    parser.add_argument(\"--timeout-ms\", type=int, default=30000, help=\"Navigation timeout in ms.\")\n    parser.add_argument(\n        \"--headless\",\n        action=argparse.BooleanOptionalAction,\n        default=True,\n        help=\"Run browser headless (default: true).\",",
+        "detail": "signal.fetch_job_listing",
+        "documentation": {}
+    },
+    {
+        "label": "TestBriefsPipeline",
+        "kind": 6,
+        "importPath": "tests.test_briefs_pipeline",
+        "description": "tests.test_briefs_pipeline",
+        "peekOfCode": "class TestBriefsPipeline(unittest.TestCase):\n    def setUp(self) -> None:\n        self._tmp = tempfile.TemporaryDirectory()\n        self.addCleanup(self._tmp.cleanup)\n        self.tmp = Path(self._tmp.name)\n        os.environ[\"ENRICHMENT_CACHE_DB\"] = str(self.tmp / \"cache.db\")\n        # Minimal Crunchbase dataset for deterministic tests.\n        self.cb_path = self.tmp / \"crunchbase.json\"\n        self.cb_path.write_text(\n            json.dumps(",
+        "detail": "tests.test_briefs_pipeline",
+        "documentation": {}
+    },
+    {
+        "label": "TestCrmCalendarIntegration",
+        "kind": 6,
+        "importPath": "tests.test_crm_calendar_integration",
+        "description": "tests.test_crm_calendar_integration",
+        "peekOfCode": "class TestCrmCalendarIntegration(unittest.TestCase):\n    def setUp(self) -> None:\n        self.client = TestClient(app)\n        set_calendar_event_handler(lambda event: None)\n    def tearDown(self) -> None:\n        set_calendar_event_handler(lambda event: None)\n    @patch(\"agent.main.write_enriched_contact\")\n    @patch(\"agent.main.classify_icp\")\n    @patch(\"agent.main.produce_hiring_signal_brief\")\n    def test_crm_enrichment_writes_icp_and_signals(",
+        "detail": "tests.test_crm_calendar_integration",
+        "documentation": {}
+    },
+    {
+        "label": "TestCrunchbaseLookup",
+        "kind": 6,
+        "importPath": "tests.test_crunchbase",
+        "description": "tests.test_crunchbase",
+        "peekOfCode": "class TestCrunchbaseLookup(unittest.TestCase):\n    def setUp(self) -> None:\n        crunchbase._clear_caches()\n    def _write_json_dataset(self, records: list[dict]) -> Path:\n        tmpdir = tempfile.TemporaryDirectory()\n        self.addCleanup(tmpdir.cleanup)\n        path = Path(tmpdir.name) / \"crunchbase_sample.json\"\n        path.write_text(json.dumps(records), encoding=\"utf-8\")\n        return path\n    def test_exact_match(self) -> None:",
+        "detail": "tests.test_crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "TestEmailHandler",
+        "kind": 6,
+        "importPath": "tests.test_email_handler",
+        "description": "tests.test_email_handler",
+        "peekOfCode": "class TestEmailHandler(unittest.TestCase):\n    def setUp(self) -> None:\n        self.client = TestClient(app)\n        set_email_event_handler(lambda event: None)\n        set_sms_event_handler(lambda event: None)\n    def tearDown(self) -> None:\n        set_email_event_handler(lambda event: None)\n        set_sms_event_handler(lambda event: None)\n    @patch.dict(\n        \"os.environ\",",
+        "detail": "tests.test_email_handler",
+        "documentation": {}
+    },
+    {
+        "label": "TestSignals",
+        "kind": 6,
+        "importPath": "tests.test_signals",
+        "description": "tests.test_signals",
+        "peekOfCode": "class TestSignals(unittest.TestCase):\n    def setUp(self) -> None:\n        self._tmp = tempfile.TemporaryDirectory()\n        self.addCleanup(self._tmp.cleanup)\n        os.environ[\"ENRICHMENT_CACHE_DB\"] = str(Path(self._tmp.name) / \"cache.db\")\n    def tearDown(self) -> None:\n        os.environ.pop(\"ENRICHMENT_CACHE_DB\", None)\n    def test_sqlite_cache_roundtrip(self) -> None:\n        cache.set_cache(\"unit\", \"k1\", {\"ok\": True})\n        value = cache.get_cache(\"unit\", \"k1\", max_age_seconds=3600)",
+        "detail": "tests.test_signals",
+        "documentation": {}
+    },
+    {
+        "label": "TestThreadManagerIsolation",
+        "kind": 6,
+        "importPath": "tests.test_thread_manager",
+        "description": "tests.test_thread_manager",
+        "peekOfCode": "class TestThreadManagerIsolation(unittest.TestCase):\n    def setUp(self) -> None:\n        self._tmp = tempfile.TemporaryDirectory()\n        self.addCleanup(self._tmp.cleanup)\n        self.db_path = Path(self._tmp.name) / \"threads.db\"\n        os.environ[\"THREADS_DB_PATH\"] = str(self.db_path)\n    def tearDown(self) -> None:\n        os.environ.pop(\"THREADS_DB_PATH\", None)\n    def test_context_is_isolated_by_thread_id(self) -> None:\n        manager = ThreadManager()",
+        "detail": "tests.test_thread_manager",
         "documentation": {}
     }
 ]

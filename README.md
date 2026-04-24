@@ -53,6 +53,28 @@ python3 -m pip install -r agent/requirements.txt
 python3 -m playwright install chromium
 ```
 
+### 1b) (Optional) Run the UI dashboard
+
+The repo includes a Next.js dashboard under `ui/` that calls the FastAPI endpoints and renders the generated briefs.
+
+Terminal 1 (API):
+```bash
+uvicorn agent.main:app --reload --port 8000
+```
+
+Terminal 2 (UI):
+```bash
+cd ui
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+For Render:
+- Backend: `https://conversion-engine-for-sales-automation.onrender.com`
+- UI should set `AGENT_API_URL` to your backend URL (see `ui/README.md`).
+
 ### 2) Generate the hiring signal brief (core artifact)
 
 ```bash
@@ -161,3 +183,8 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ## Service API (SMS)
 
 The FastAPI service and SMS routes are documented in `agent/README.md`.
+
+## Output locations
+
+- Hiring brief JSON: `data/briefs/hiring_signal_brief_<company>_<YYYY-MM-DD>.json`
+- Competitor gap JSON: `data/briefs/competitor_gap_brief_<company>_<YYYY-MM-DD>.json`

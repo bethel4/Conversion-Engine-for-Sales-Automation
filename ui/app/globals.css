@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Background is a light lavender (#EFEBF7) expressed as HSL. */
+  --background: 270 44% 95%;
+  --foreground: 240 10% 10%;
+
+  /* Primary (#5524B3) + Accent (#5878F4) expressed as HSL. */
+  --primary: 259 66% 42%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 227 86% 65%;
+  --accent-foreground: 240 10% 10%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 10%;
+  --muted: 270 35% 92%;
+  --muted-foreground: 240 6% 35%;
+  --border: 262 25% 80%;
+  --ring: 262 25% 70%;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
