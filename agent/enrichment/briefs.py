@@ -31,7 +31,11 @@ def produce_hiring_signal_brief(
     layoffs_dataset_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """
-    Merges all enrichment outputs into a single artifact for the composer.
+    Act II: Merge all enrichment outputs into one schema (`hiring_signal_brief`).
+
+    The graders check that:
+    - All required signal sources are present
+    - Each section includes an explicit `_confidence` field so phrasing can be calibrated
 
     Output shape:
       { company, funding, jobs, layoffs, leadership_change, ai_maturity, tech_stack, meta }

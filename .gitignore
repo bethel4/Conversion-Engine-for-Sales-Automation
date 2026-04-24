@@ -13,7 +13,11 @@ data/
 data/cache.db
 data/processed/
 data/briefs/
+data/threads.db
 env/
 dist/
 build/
 *.egg-info/
+node_modules/
+.next/
+ui/.env.local

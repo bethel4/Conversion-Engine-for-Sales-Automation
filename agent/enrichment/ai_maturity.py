@@ -5,7 +5,15 @@ from typing import Any
 
 def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
     """
-    Scores AI maturity 0–3 using multiple weak signals.
+    Act II: Score AI maturity (0–3) with per-signal justification.
+
+    This output is used to:
+    - Gate Segment 4 entirely (score must be >= 2)
+    - Control phrasing (assert vs hedge vs ask) based on confidence
+
+    Scoring uses 6 signals with weights (high/medium/low). Points are summed then mapped
+    to a 0–3 integer score. A full `justification.per_signal` is returned so the composer
+    can cite evidence without overclaiming.
 
     Input signals (best-effort; missing keys treated as absent):
       - ai_ml_roles, engineering_roles
@@ -145,4 +153,3 @@ def _threshold_signal(
     if value >= medium[0]:
         return {"points": medium[1], "weight": "medium", "evidence": evidence}
     return {"points": low[1], "weight": "none", "evidence": evidence}
-

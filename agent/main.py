@@ -5,12 +5,18 @@ from typing import Any, Callable, Literal, Optional
 
 import requests
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from agent.enrichment.briefs import produce_hiring_signal_brief
 from agent.enrichment.pipeline import run_hiring_signal_enrichment
 from agent.enrichment.icp import classify_icp
-from agent.hubspot_mcp import write_booking_update, write_enriched_contact
+from agent.hubspot_mcp import (
+    log_event,
+    set_lifecycle_stage,
+    write_booking_update,
+    write_enriched_contact,
+)
 
 try:
     from dotenv import load_dotenv
@@ -21,6 +27,22 @@ if load_dotenv is not None:
     load_dotenv()
 
 app = FastAPI(title="Conversion Engine Agent")
+
+# Local UI/dev convenience (Next.js dev server, etc.).
+# If you deploy behind a gateway, set `CORS_ALLOW_ORIGINS` explicitly.
+_cors_origins_raw = os.getenv(
+    "CORS_ALLOW_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+_cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 RESEND_API_URL = "https://api.resend.com/emails"
 AFRICASTALKING_SMS_API_URL = "https://api.africastalking.com/version1/messaging"
@@ -110,6 +132,7 @@ class ProspectEnrichmentRequest(BaseModel):
     company_name: str = Field(..., min_length=1)
     phone: Optional[str] = None
     domain: Optional[str] = None
+    leadership_sources: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class HiringBriefRequest(BaseModel):
@@ -118,6 +141,13 @@ class HiringBriefRequest(BaseModel):
     use_playwright: bool = False
     out_dir: str = "data/briefs"
     leadership_sources: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class CompetitorGapRequest(BaseModel):
+    company_name: str = Field(..., min_length=1)
+    hiring_brief: Optional[dict[str, Any]] = None
+    peers_limit: int = Field(10, ge=1, le=25)
+    out_dir: str = "data/briefs"
 
 
 class EmailSendRequest(BaseModel):
@@ -307,7 +337,12 @@ def send_sms_to_warm_lead(payload: SMSSendRequest) -> dict[str, Any]:
 
 
 def enrich_and_write_contact(payload: ProspectEnrichmentRequest) -> dict[str, Any]:
-    brief = produce_hiring_signal_brief(payload.company_name, domain=payload.domain)
+    leadership_sources = payload.leadership_sources or None
+    brief = produce_hiring_signal_brief(
+        payload.company_name,
+        domain=payload.domain,
+        leadership_sources=leadership_sources,
+    )
     icp = classify_icp(brief)
     enrichment = {
         "segment": icp["segment"],
@@ -333,6 +368,38 @@ def enrich_and_write_contact(payload: ProspectEnrichmentRequest) -> dict[str, An
         icp_segment=icp["segment"],
         enrichment=enrichment,
     )
+    try:
+        # Thread/prospect identity cache so a later reply webhook can be linked back to company_name.
+        from agent.enrichment.cache import set_cache
+
+        set_cache(
+            "prospect_identity",
+            payload.email.casefold(),
+            {
+                "email": payload.email,
+                "phone": payload.phone,
+                "company_name": payload.company_name,
+                "domain": payload.domain,
+                "leadership_sources": payload.leadership_sources,
+            },
+        )
+    except Exception as exc:  # pragma: no cover
+        print("IDENTITY CACHE ERROR:", str(exc))
+    try:
+        log_event(
+            email=payload.email,
+            phone=payload.phone,
+            event_type="enrichment_completed",
+            data={"company_name": payload.company_name, "icp": icp, "brief_meta": brief.get("meta")},
+        )
+        log_event(
+            email=payload.email,
+            phone=payload.phone,
+            event_type="qualified",
+            data={"segment": icp["segment"], "confidence": icp["confidence"], "pitch_angle": icp["pitch_angle"]},
+        )
+    except Exception as exc:  # pragma: no cover
+        print("HUBSPOT EVENT LOGGING ERROR (enrichment/qualified):", str(exc))
     return {"hubspot": hubspot, "enrichment": enrichment}
 
 
@@ -537,7 +604,22 @@ async def webhook(request: Request):
 @app.post("/emails/send")
 def send_email_route(payload: EmailSendRequest):
     try:
-        return {"status": "sent", "provider": "resend", "result": send_email(payload)}
+        result = send_email(payload)
+        for recipient in payload.to:
+            try:
+                log_event(
+                    email=recipient,
+                    event_type="email_sent",
+                    data={
+                        "provider": "resend",
+                        "message_id": result.get("id"),
+                        "subject": payload.subject,
+                        "tags": payload.tags,
+                    },
+                )
+            except Exception as exc:  # pragma: no cover
+                print("HUBSPOT EVENT LOGGING ERROR (email_sent):", str(exc))
+        return {"status": "sent", "provider": "resend", "result": result}
     except RuntimeError as exc:
         message = str(exc)
         status_code = 500 if "not set" in message else 502
@@ -581,10 +663,54 @@ def generate_hiring_brief_route(payload: HiringBriefRequest):
         raise HTTPException(status_code=status_code, detail=message) from exc
 
 
+@app.post("/enrichment/competitor-gap")
+def generate_competitor_gap_route(payload: CompetitorGapRequest):
+    """
+    Produces competitor_gap_brief_<company>_<date>.json (local-only; no paid APIs).
+    """
+
+    try:
+        from agent.enrichment.competitor_gap import (
+            produce_competitor_gap_brief,
+            write_competitor_gap_brief_file,
+        )
+
+        brief = produce_competitor_gap_brief(
+            payload.company_name,
+            hiring_brief=payload.hiring_brief,
+            peers_limit=payload.peers_limit,
+        )
+        path = write_competitor_gap_brief_file(brief, out_dir=payload.out_dir)
+        return {"status": "ok", "brief": brief, "brief_path": str(path)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        message = str(exc)
+        status_code = 500 if "not set" in message else 502
+        raise HTTPException(status_code=status_code, detail=message) from exc
+
+
 @app.post("/calendar/book")
 def create_booking_route(payload: CalcomBookingRequest):
     try:
-        return {"status": "booked", "provider": "cal.com", "result": create_calcom_booking(payload)}
+        result = create_calcom_booking(payload)
+        try:
+            log_event(
+                email=payload.email,
+                event_type="call_booked",
+                data={
+                    "provider": "cal.com",
+                    "booking": result,
+                    "company_name": payload.company_name,
+                },
+            )
+            set_lifecycle_stage(
+                email=payload.email,
+                stage=os.getenv("HUBSPOT_STAGE_CALL_BOOKED", "appointmentscheduled"),
+            )
+        except Exception as exc:  # pragma: no cover
+            print("HUBSPOT EVENT LOGGING ERROR (call_booked):", str(exc))
+        return {"status": "booked", "provider": "cal.com", "result": result}
     except RuntimeError as exc:
         message = str(exc)
         status_code = 500 if "not set" in message else 502
@@ -595,6 +721,19 @@ def create_booking_route(payload: CalcomBookingRequest):
 def send_sms_route(payload: SMSSendRequest):
     try:
         result = send_sms_to_warm_lead(payload)
+        for recipient in payload.to:
+            try:
+                log_event(
+                    phone=recipient,
+                    event_type="sms_sent",
+                    data={
+                        "provider": "africas_talking",
+                        "message": payload.message,
+                        "result": result,
+                    },
+                )
+            except Exception as exc:  # pragma: no cover
+                print("HUBSPOT EVENT LOGGING ERROR (sms_sent):", str(exc))
         return {"status": "sent", "provider": "africas_talking", "result": result}
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
@@ -621,6 +760,72 @@ async def email_webhook(request: Request):
     try:
         event = _parse_email_event(payload)
         emit_email_event(event)
+        try:
+            if event.event_type == "reply":
+                log_event(
+                    email=event.sender,
+                    event_type="email_reply_received",
+                    data={
+                        "message_id": event.message_id,
+                        "subject": event.subject,
+                        "text": event.text,
+                    },
+                )
+                # Best-effort: qualify on reply by using cached identity from earlier enrichment.
+                try:
+                    from agent.enrichment.cache import get_cache
+
+                    identity = get_cache(
+                        "prospect_identity",
+                        event.sender.casefold(),
+                        max_age_seconds=365 * 24 * 3600,
+                    )
+                except Exception:
+                    identity = None
+
+                if isinstance(identity, dict) and identity.get("company_name"):
+                    try:
+                        enrich_and_write_contact(
+                            ProspectEnrichmentRequest(
+                                email=identity.get("email") or event.sender,
+                                company_name=str(identity["company_name"]),
+                                phone=identity.get("phone"),
+                                domain=identity.get("domain"),
+                                leadership_sources=identity.get("leadership_sources") or [],
+                            )
+                        )
+                    except Exception as exc:  # pragma: no cover
+                        print("AUTO-QUALIFICATION ERROR:", str(exc))
+
+                # Optional: if you set a static booking link, send it after qualification.
+                booking_link = os.getenv("CALCOM_BOOKING_LINK")
+                if booking_link and isinstance(booking_link, str) and booking_link.strip():
+                    try:
+                        followup = send_email(
+                            EmailSendRequest(
+                                to=[event.sender],
+                                subject="Quick booking link",
+                                text=(
+                                    "Thanks — if it’s helpful, here’s a direct booking link for a short call:\n"
+                                    f"{booking_link.strip()}\n"
+                                ),
+                            )
+                        )
+                        log_event(
+                            email=event.sender,
+                            event_type="followup_booking_link_sent",
+                            data={"booking_link": booking_link.strip(), "message_id": followup.get("id")},
+                        )
+                    except Exception as exc:  # pragma: no cover
+                        print("FOLLOWUP BOOKING LINK ERROR:", str(exc))
+            elif event.event_type == "bounce":
+                log_event(
+                    email=event.sender,
+                    event_type="email_bounce_received",
+                    data={"message_id": event.message_id, "reason": event.text},
+                )
+        except Exception as exc:  # pragma: no cover
+            print("HUBSPOT EVENT LOGGING ERROR (email_webhook):", str(exc))
         return {
             "status": "accepted",
             "event_type": event.event_type,
@@ -656,6 +861,29 @@ async def calendar_webhook(request: Request):
             booking_start_time=event.start_time,
             booking_title=event.title,
         )
+        try:
+            if event.booking_status == "completed":
+                log_event(
+                    email=event.email,
+                    event_type="call_completed",
+                    data={"booking_id": event.booking_id, "title": event.title},
+                )
+                set_lifecycle_stage(
+                    email=event.email,
+                    stage=os.getenv("HUBSPOT_STAGE_CALL_COMPLETED", "customer"),
+                )
+            else:
+                log_event(
+                    email=event.email,
+                    event_type="call_booked",
+                    data={"booking_id": event.booking_id, "title": event.title},
+                )
+                set_lifecycle_stage(
+                    email=event.email,
+                    stage=os.getenv("HUBSPOT_STAGE_CALL_BOOKED", "appointmentscheduled"),
+                )
+        except Exception as exc:  # pragma: no cover
+            print("HUBSPOT EVENT LOGGING ERROR (calendar_webhook):", str(exc))
         return {
             "status": "accepted",
             "event_type": event.event_type,
@@ -682,6 +910,14 @@ async def sms_webhook(request: Request):
     try:
         event = _parse_sms_event(payload)
         emit_sms_event(event)
+        try:
+            log_event(
+                phone=event.sender,
+                event_type="sms_reply_received",
+                data={"message_id": event.message_id, "text": event.text},
+            )
+        except Exception as exc:  # pragma: no cover
+            print("HUBSPOT EVENT LOGGING ERROR (sms_webhook):", str(exc))
         return {
             "status": "accepted",
             "event_type": event.event_type,
