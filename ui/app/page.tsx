@@ -49,6 +49,12 @@ export default function Page() {
   const [hubspotResult, setHubspotResult] = useState<any>(null);
   const [sendLoading, setSendLoading] = useState(false);
   const [sendResult, setSendResult] = useState<any>(null);
+  const [replyText, setReplyText] = useState("Yes — can you share what you found?");
+  const [replyLoading, setReplyLoading] = useState(false);
+  const [replyResult, setReplyResult] = useState<any>(null);
+  const [bookingId, setBookingId] = useState("demo-booking-001");
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingResult, setBookingResult] = useState<any>(null);
 
   const hiringBrief: HiringBrief | null = useMemo(() => {
     if (!result || (result as any).status !== "ok") return null;
@@ -67,6 +73,8 @@ export default function Page() {
     setResult(null);
     setHubspotResult(null);
     setSendResult(null);
+    setReplyResult(null);
+    setBookingResult(null);
     try {
       const res = await fetch("/api/enrich", {
         method: "POST",
@@ -143,6 +151,66 @@ export default function Page() {
     }
   }
 
+  const lastMessageId: string | null = useMemo(() => {
+    const id = sendResult?.data?.result?.id;
+    return typeof id === "string" && id.trim() ? id : null;
+  }, [sendResult]);
+
+  async function simulateReply() {
+    setReplyLoading(true);
+    setReplyResult(null);
+    try {
+      if (!lastMessageId) throw new Error("Send an email first (no message_id yet).");
+      const res = await fetch("/api/simulate-reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender_email: prospectEmail,
+          message_id: lastMessageId,
+          subject: emailSubject,
+          text: replyText,
+          to: []
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      setReplyResult({ status: res.status, data });
+      if (!res.ok) {
+        const detail = (data as any)?.detail ?? (data as any)?.error ?? "Reply simulation failed";
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+      }
+    } catch (err: any) {
+      setError(err?.message ?? "Unknown error");
+    } finally {
+      setReplyLoading(false);
+    }
+  }
+
+  async function simulateBooking() {
+    setBookingLoading(true);
+    setBookingResult(null);
+    try {
+      const res = await fetch("/api/simulate-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: prospectEmail,
+          booking_id: bookingId,
+          status: "confirmed"
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      setBookingResult({ status: res.status, data });
+      if (!res.ok) {
+        const detail = (data as any)?.detail ?? (data as any)?.error ?? "Booking simulation failed";
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+      }
+    } catch (err: any) {
+      setError(err?.message ?? "Unknown error");
+    } finally {
+      setBookingLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
@@ -215,7 +283,8 @@ export default function Page() {
               <Users className="h-5 w-5 text-accent" /> Prospect actions (Render demo)
             </CardTitle>
             <CardDescription>
-              These call the backend so secrets stay server-side (Resend/HubSpot keys live in Render env vars).
+              Unbroken on-screen lifecycle: enrich → send → reply → qualify → booking step. All calls go to your backend so
+              secrets stay server-side (Resend/HubSpot keys live in Render env vars).
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
@@ -246,11 +315,50 @@ export default function Page() {
               </Button>
             </div>
 
-            {(hubspotResult || sendResult) ? (
+            <div className="grid gap-4 rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border/50">
+              <div className="text-sm font-medium text-foreground">Reply + booking (for video continuity)</div>
+              <div className="grid gap-2">
+                <label className="text-sm text-muted-foreground">Reply text</label>
+                <Input value={replyText} onChange={(e) => setReplyText(e.target.value)} />
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="button" variant="secondary" className="gap-2" onClick={simulateReply} disabled={replyLoading}>
+                  {replyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  Simulate reply webhook
+                </Button>
+                <div className="text-xs text-muted-foreground">
+                  message_id:{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5">{lastMessageId ?? "n/a"}</code>
+                </div>
+              </div>
+
+              <div className="grid gap-2 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <label className="text-sm text-muted-foreground">Booking id</label>
+                  <Input value={bookingId} onChange={(e) => setBookingId(e.target.value)} />
+                </div>
+                <div className="flex items-end gap-3">
+                  <Button type="button" variant="secondary" className="gap-2" onClick={simulateBooking} disabled={bookingLoading}>
+                    {bookingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                    Simulate booking webhook
+                  </Button>
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                Tip: set <code className="rounded bg-muted px-1.5 py-0.5">CALCOM_BOOKING_LINK</code> on Render to auto-send a booking link email after the reply is received.
+              </div>
+            </div>
+
+            {(hubspotResult || sendResult || replyResult || bookingResult) ? (
               <details className="rounded-2xl bg-muted p-4 ring-1 ring-border/50">
                 <summary className="cursor-pointer select-none text-sm font-medium">Action responses</summary>
                 <pre className="mt-3 max-h-80 overflow-auto text-xs">
-                  {JSON.stringify({ hubspot: hubspotResult, email: sendResult }, null, 2)}
+                  {JSON.stringify(
+                    { hubspot: hubspotResult, email: sendResult, reply: replyResult, booking: bookingResult },
+                    null,
+                    2
+                  )}
                 </pre>
               </details>
             ) : null}
