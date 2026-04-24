@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,12 +32,14 @@ function ConfidenceBadge({ value }: { value: Confidence | string | undefined }) 
 }
 
 export default function Page() {
+  const [backendUrl, setBackendUrl] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("Consolety");
   const [domain, setDomain] = useState("");
   const [usePlaywright, setUsePlaywright] = useState(false);
   const [peersLimit, setPeersLimit] = useState(10);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [actionsError, setActionsError] = useState<string | null>(null);
   const [result, setResult] = useState<EnrichResult | null>(null);
 
   const [prospectEmail, setProspectEmail] = useState("you+consolety@test.com");
@@ -56,6 +58,18 @@ export default function Page() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/config", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (typeof data?.agent_api_url === "string") setBackendUrl(data.agent_api_url);
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
+
   const hiringBrief: HiringBrief | null = useMemo(() => {
     if (!result || (result as any).status !== "ok") return null;
     return (result as any).hiring?.brief ?? null;
@@ -69,7 +83,7 @@ export default function Page() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setEnrichError(null);
     setResult(null);
     setHubspotResult(null);
     setSendResult(null);
@@ -93,7 +107,7 @@ export default function Page() {
       }
       setResult(data);
     } catch (err: any) {
-      setError(err?.message ?? "Unknown error");
+      setEnrichError(err?.message ?? "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -101,6 +115,7 @@ export default function Page() {
 
   async function enrichToHubSpot() {
     setHubspotLoading(true);
+    setActionsError(null);
     setHubspotResult(null);
     try {
       const res = await fetch("/api/enrich-hubspot", {
@@ -119,7 +134,7 @@ export default function Page() {
         throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
       }
     } catch (err: any) {
-      setError(err?.message ?? "Unknown error");
+      setActionsError(err?.message ?? "Unknown error");
     } finally {
       setHubspotLoading(false);
     }
@@ -127,6 +142,7 @@ export default function Page() {
 
   async function sendEmail() {
     setSendLoading(true);
+    setActionsError(null);
     setSendResult(null);
     try {
       const res = await fetch("/api/send-email", {
@@ -145,7 +161,7 @@ export default function Page() {
         throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
       }
     } catch (err: any) {
-      setError(err?.message ?? "Unknown error");
+      setActionsError(err?.message ?? "Unknown error");
     } finally {
       setSendLoading(false);
     }
@@ -158,6 +174,7 @@ export default function Page() {
 
   async function simulateReply() {
     setReplyLoading(true);
+    setActionsError(null);
     setReplyResult(null);
     try {
       if (!lastMessageId) throw new Error("Send an email first (no message_id yet).");
@@ -179,7 +196,7 @@ export default function Page() {
         throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
       }
     } catch (err: any) {
-      setError(err?.message ?? "Unknown error");
+      setActionsError(err?.message ?? "Unknown error");
     } finally {
       setReplyLoading(false);
     }
@@ -187,6 +204,7 @@ export default function Page() {
 
   async function simulateBooking() {
     setBookingLoading(true);
+    setActionsError(null);
     setBookingResult(null);
     try {
       const res = await fetch("/api/simulate-booking", {
@@ -205,7 +223,7 @@ export default function Page() {
         throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
       }
     } catch (err: any) {
-      setError(err?.message ?? "Unknown error");
+      setActionsError(err?.message ?? "Unknown error");
     } finally {
       setBookingLoading(false);
     }
@@ -268,9 +286,9 @@ export default function Page() {
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
                 Run enrichment
               </Button>
-              {error ? (
+              {enrichError ? (
                 <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-800 ring-1 ring-rose-200">
-                  {error}
+                  {enrichError}
                 </div>
               ) : null}
             </form>
@@ -361,6 +379,11 @@ export default function Page() {
                   )}
                 </pre>
               </details>
+            ) : null}
+            {actionsError ? (
+              <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-800 ring-1 ring-rose-200">
+                {actionsError}
+              </div>
             ) : null}
           </CardContent>
         </Card>
@@ -490,6 +513,10 @@ export default function Page() {
             <CardDescription>Where outputs are stored and what to do if something fails.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2 text-sm text-muted-foreground">
+            <div>
+              Backend (from UI):{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5">{backendUrl ?? "unknown"}</code>
+            </div>
             <div>
               Brief JSON files are written by the backend to <code className="rounded bg-muted px-1.5 py-0.5">data/briefs/</code>.
             </div>
