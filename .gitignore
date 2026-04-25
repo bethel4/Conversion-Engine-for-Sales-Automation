@@ -12,6 +12,7 @@ venv/
 data/
 !data/
 data/*
+!data/prospects.json
 !data/raw/
 data/raw/*
 !data/raw/crunchbase/
