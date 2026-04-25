@@ -10,6 +10,16 @@ htmlcov/
 .venv/
 venv/
 data/
+!data/
+data/*
+!data/raw/
+data/raw/*
+!data/raw/crunchbase/
+data/raw/crunchbase/*
+!data/raw/crunchbase/crunchbase-companies-information.csv
+!data/raw/layoffs/
+data/raw/layoffs/*
+!data/raw/layoffs/layoffs.csv
 data/cache.db
 data/processed/
 data/briefs/
