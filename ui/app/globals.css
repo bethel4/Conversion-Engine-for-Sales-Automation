@@ -3,22 +3,20 @@
 @tailwind utilities;
 
 :root {
-  /* Background is a light lavender (#EFEBF7) expressed as HSL. */
-  --background: 270 44% 95%;
-  --foreground: 240 10% 10%;
+  --background: 210 25% 97%;
+  --foreground: 222 47% 11%;
 
-  /* Primary (#5524B3) + Accent (#5878F4) expressed as HSL. */
-  --primary: 259 66% 42%;
-  --primary-foreground: 0 0% 100%;
-  --accent: 227 86% 65%;
-  --accent-foreground: 240 10% 10%;
+  --primary: 221 83% 20%;
+  --primary-foreground: 210 40% 98%;
+  --accent: 39 88% 57%;
+  --accent-foreground: 222 47% 11%;
 
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 10%;
-  --muted: 270 35% 92%;
-  --muted-foreground: 240 6% 35%;
-  --border: 262 25% 80%;
-  --ring: 262 25% 70%;
+  --card-foreground: 222 47% 11%;
+  --muted: 210 16% 93%;
+  --muted-foreground: 215 16% 41%;
+  --border: 215 22% 84%;
+  --ring: 214 68% 52%;
 }
 
 html,
@@ -29,5 +27,15 @@ body {
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+  background-image:
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 247, 250, 0.98));
+  font-family: var(--font-body), sans-serif;
 }
 
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-headline), sans-serif;
+}

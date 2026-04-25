@@ -9,6 +9,111 @@ import requests
 
 HUBSPOT_API_URL = "https://api.hubapi.com"
 
+ENRICHMENT_CONTACT_PROPERTY_SPECS: dict[str, dict[str, Any]] = {
+    "tenacious_company_size": {
+        "label": "Tenacious Company Size",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "contactinformation",
+    },
+    "tenacious_industry": {
+        "label": "Tenacious Industry",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "contactinformation",
+    },
+    "tenacious_funding_stage": {
+        "label": "Tenacious Funding Stage",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "contactinformation",
+    },
+    "tenacious_funding_amount": {
+        "label": "Tenacious Funding Amount",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "contactinformation",
+    },
+    "tenacious_funding_days_ago": {
+        "label": "Tenacious Funding Days Ago",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "contactinformation",
+    },
+    "tenacious_engineering_roles": {
+        "label": "Tenacious Engineering Roles",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "contactinformation",
+    },
+    "tenacious_job_velocity_60d": {
+        "label": "Tenacious Job Velocity 60d",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "contactinformation",
+    },
+    "tenacious_job_signal_confidence": {
+        "label": "Tenacious Job Signal Confidence",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "contactinformation",
+    },
+    "tenacious_layoff_detected": {
+        "label": "Tenacious Layoff Detected",
+        "type": "bool",
+        "fieldType": "booleancheckbox",
+        "groupName": "contactinformation",
+    },
+    "tenacious_layoff_days_ago": {
+        "label": "Tenacious Layoff Days Ago",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "contactinformation",
+    },
+    "tenacious_leadership_change": {
+        "label": "Tenacious Leadership Change",
+        "type": "bool",
+        "fieldType": "booleancheckbox",
+        "groupName": "contactinformation",
+    },
+    "tenacious_leadership_role": {
+        "label": "Tenacious Leadership Role",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "contactinformation",
+    },
+    "tenacious_ai_maturity_score": {
+        "label": "Tenacious AI Maturity Score",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "contactinformation",
+    },
+    "tenacious_ai_maturity_confidence": {
+        "label": "Tenacious AI Maturity Confidence",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "contactinformation",
+    },
+    "tenacious_icp_segment": {
+        "label": "Tenacious ICP Segment",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "contactinformation",
+    },
+    "tenacious_icp_confidence": {
+        "label": "Tenacious ICP Confidence",
+        "type": "number",
+        "fieldType": "number",
+        "groupName": "contactinformation",
+    },
+    "tenacious_enrichment_timestamp": {
+        "label": "Tenacious Enrichment Timestamp",
+        "type": "string",
+        "fieldType": "text",
+        "groupName": "contactinformation",
+    },
+}
+
 
 def _hubspot_api_key() -> str:
     api_key = os.getenv("HUBSPOT_API_KEY")
@@ -94,14 +199,56 @@ def build_enriched_contact_properties(
     enrichment: dict[str, Any],
 ) -> dict[str, Any]:
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    signals = enrichment.get("signals", {}) if isinstance(enrichment.get("signals"), dict) else {}
+    funding = signals.get("funding", {}) if isinstance(signals.get("funding"), dict) else {}
+    jobs = signals.get("jobs", {}) if isinstance(signals.get("jobs"), dict) else {}
+    layoffs = signals.get("layoffs", {}) if isinstance(signals.get("layoffs"), dict) else {}
+    leadership = (
+        signals.get("leadership_change", {})
+        if isinstance(signals.get("leadership_change"), dict)
+        else {}
+    )
+    ai = signals.get("ai_maturity", {}) if isinstance(signals.get("ai_maturity"), dict) else {}
+    company_signal = signals.get("company", {}) if isinstance(signals.get("company"), dict) else {}
+    industry = _first_non_empty(
+        enrichment.get("industry"),
+        company_signal.get("industry"),
+        company_signal.get("industries"),
+    )
+
     return {
         "email": email,
-        "phone": phone,
-        "company": company_name,
-        "icp_segment": icp_segment,
+        "phone": _coalesce_text(phone),
+        "company": _coalesce_text(company_name),
+        "icp_segment": _coalesce_text(icp_segment),
         "pitch_angle": enrichment.get("pitch_angle"),
         "signal_enrichment_json": json.dumps(enrichment, separators=(",", ":"), sort_keys=True),
         "enrichment_timestamp": timestamp,
+        "tenacious_company_size": _coalesce_text(
+            enrichment.get("company_size"),
+            company_signal.get("num_employees"),
+            company_signal.get("company_size"),
+        ),
+        "tenacious_industry": _coalesce_text(industry),
+        "tenacious_funding_stage": _coalesce_text(funding.get("round_type")),
+        "tenacious_funding_amount": _coalesce_number(funding.get("amount_usd")),
+        "tenacious_funding_days_ago": _coalesce_number(funding.get("days_ago")),
+        "tenacious_engineering_roles": _coalesce_number(jobs.get("engineering_roles")),
+        "tenacious_job_velocity_60d": _coalesce_number(jobs.get("velocity_60d")),
+        "tenacious_job_signal_confidence": _coalesce_text(
+            jobs.get("_confidence"),
+            jobs.get("confidence"),
+            jobs.get("signal_strength"),
+        ),
+        "tenacious_layoff_detected": _coalesce_bool(layoffs.get("had_layoff")),
+        "tenacious_layoff_days_ago": _coalesce_number(layoffs.get("days_ago")),
+        "tenacious_leadership_change": _coalesce_bool(leadership.get("new_leader_detected")),
+        "tenacious_leadership_role": _coalesce_text(leadership.get("role")),
+        "tenacious_ai_maturity_score": _coalesce_number(ai.get("score")),
+        "tenacious_ai_maturity_confidence": _coalesce_text(ai.get("_confidence"), ai.get("confidence")),
+        "tenacious_icp_segment": _coalesce_text(icp_segment),
+        "tenacious_icp_confidence": _coalesce_number(enrichment.get("confidence")),
+        "tenacious_enrichment_timestamp": timestamp,
     }
 
 
@@ -113,6 +260,7 @@ def write_enriched_contact(
     icp_segment: str,
     enrichment: dict[str, Any],
 ) -> dict[str, Any]:
+    _ensure_enrichment_contact_properties()
     properties = build_enriched_contact_properties(
         email=email,
         phone=phone,
@@ -180,6 +328,8 @@ def log_event(
     contact_id = str(contact["id"])
 
     note = _create_note(
+        contact_id=contact_id,
+        email=email,
         event_type=event_type,
         occurred_at=occurred_at,
         body_json=payload,
@@ -263,6 +413,32 @@ def _ensure_contact(*, email: str | None, phone: str | None) -> dict[str, Any]:
     return _request("POST", "/crm/v3/objects/contacts", json_body={"properties": {"phone": phone}})
 
 
+def _ensure_enrichment_contact_properties() -> None:
+    for property_name, spec in ENRICHMENT_CONTACT_PROPERTY_SPECS.items():
+        if _contact_property_exists(property_name):
+            continue
+        payload = {
+            "name": property_name,
+            "label": spec["label"],
+            "type": spec["type"],
+            "fieldType": spec["fieldType"],
+            "groupName": spec["groupName"],
+            "description": "Tenacious enrichment property",
+        }
+        _request("POST", "/crm/v3/properties/contacts", json_body=payload)
+
+
+def _contact_property_exists(property_name: str) -> bool:
+    try:
+        _request("GET", f"/crm/v3/properties/contacts/{property_name}", json_body=None)
+        return True
+    except RuntimeError as exc:
+        message = str(exc)
+        if "404" in message:
+            return False
+        raise
+
+
 def _search_contact_by_phone(phone: str) -> dict[str, Any] | None:
     payload = {
         "filterGroups": [
@@ -287,8 +463,52 @@ def _search_contact_by_phone(phone: str) -> dict[str, Any] | None:
     return None
 
 
+def _coalesce_text(*values: Any) -> str:
+    for value in values:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if isinstance(value, list):
+            joined = ", ".join(str(item).strip() for item in value if str(item).strip())
+            if joined:
+                return joined
+    return ""
+
+
+def _coalesce_number(value: Any) -> int | float:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, (int, float)):
+        return value
+    return 0
+
+
+def _coalesce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().casefold()
+        if lowered in {"true", "yes", "1"}:
+            return True
+        if lowered in {"false", "no", "0"}:
+            return False
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return False
+
+
+def _first_non_empty(*values: Any) -> Any:
+    for value in values:
+        if isinstance(value, str) and value.strip():
+            return value
+        if isinstance(value, list) and value:
+            return value
+    return None
+
+
 def _create_note(
     *,
+    contact_id: str,
+    email: str | None,
     event_type: str,
     occurred_at: datetime,
     body_json: dict[str, Any],
@@ -297,13 +517,12 @@ def _create_note(
     # - hs_note_body: HTML/text string
     # - hs_timestamp: epoch ms timestamp
     occurred_ms = int(occurred_at.timestamp() * 1000)
-    body = {
-        "event_type": event_type,
-        "occurred_at": occurred_at.replace(microsecond=0).isoformat(),
-        "data": body_json,
-    }
-    note_body = (
-        f"<pre>{json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True)[:7500]}</pre>"
+    note_body = _format_note_body(
+        contact_id=contact_id,
+        email=email,
+        event_type=event_type,
+        occurred_at=occurred_at,
+        body_json=body_json,
     )
     return _request(
         "POST",
@@ -324,3 +543,53 @@ def _associate_note_to_contact_default(*, note_id: str, contact_id: str) -> None
         f"/crm/v4/objects/notes/{note_id}/associations/default/contacts/{contact_id}",
         json_body=None,
     )
+
+
+def _format_note_body(
+    *,
+    contact_id: str,
+    email: str | None,
+    event_type: str,
+    occurred_at: datetime,
+    body_json: dict[str, Any],
+) -> str:
+    timestamp = occurred_at.replace(microsecond=0).isoformat()
+    lines = [
+        f"EVENT: {event_type}",
+        f"Contact ID: {contact_id}",
+    ]
+
+    company_name = body_json.get("company_name")
+    if isinstance(company_name, str) and company_name.strip():
+        lines.append(f"Company: {company_name.strip()}")
+
+    if isinstance(email, str) and email.strip():
+        lines.append(f"Email: {email.strip()}")
+
+    thread_id = body_json.get("thread_id")
+    if isinstance(thread_id, str) and thread_id.strip():
+        lines.append(f"Thread ID: {thread_id.strip()}")
+
+    lines.append(f"Timestamp: {timestamp}")
+
+    if event_type == "qualification_complete":
+        segment = body_json.get("segment")
+        confidence = body_json.get("confidence")
+        pitch_angle = body_json.get("pitch_angle")
+        if segment is not None:
+            lines.append(f"Segment: {segment}")
+        if confidence is not None:
+            lines.append(f"Confidence: {confidence}")
+        if pitch_angle is not None:
+            lines.append(f"Pitch angle: {pitch_angle}")
+
+    raw = {
+        "event_type": event_type,
+        "occurred_at": timestamp,
+        "contact_id": contact_id,
+        "email": email,
+        "data": body_json,
+    }
+    pretty_json = json.dumps(raw, ensure_ascii=False, indent=2, sort_keys=True)
+    summary = "\n".join(lines)
+    return f"<pre>{summary}\n\nData:\n{pretty_json}</pre>"[:7500]

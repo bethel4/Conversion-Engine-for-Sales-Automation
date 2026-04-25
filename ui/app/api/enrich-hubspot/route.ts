@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 type EnrichHubSpotRequest = {
+  prospect_id?: string;
   email: string;
   company_name: string;
   phone?: string | null;
@@ -16,6 +17,16 @@ export async function POST(req: Request) {
     payload = (await req.json()) as EnrichHubSpotRequest;
   } catch {
     return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
+  }
+
+  if (payload.prospect_id && payload.prospect_id.trim()) {
+    const res = await fetch(`${AGENT_API_URL}/prospects/${encodeURIComponent(payload.prospect_id)}/refresh-crm`, {
+      method: "POST",
+      cache: "no-store"
+    });
+
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
   }
 
   if (!payload.email || !payload.email.trim()) {
@@ -41,4 +52,3 @@ export async function POST(req: Request) {
   const data = await res.json().catch(() => ({}));
   return NextResponse.json(data, { status: res.status });
 }
-

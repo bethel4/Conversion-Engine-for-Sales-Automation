@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 type SendEmailRequest = {
+  prospect_id?: string;
   to: string[];
   subject: string;
   text?: string | null;
@@ -28,6 +29,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Either `text` or `html` is required" }, { status: 400 });
   }
 
+  if (payload.prospect_id && payload.prospect_id.trim()) {
+    const res = await fetch(`${AGENT_API_URL}/prospects/${encodeURIComponent(payload.prospect_id)}/send-outreach`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: payload.to,
+        subject: payload.subject,
+        text: payload.text ?? null,
+        html: payload.html ?? null,
+        tags: payload.tags ?? []
+      }),
+      cache: "no-store"
+    });
+
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  }
+
   const res = await fetch(`${AGENT_API_URL}/emails/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -44,4 +63,3 @@ export async function POST(req: Request) {
   const data = await res.json().catch(() => ({}));
   return NextResponse.json(data, { status: res.status });
 }
-

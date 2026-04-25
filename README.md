@@ -55,7 +55,7 @@ python3 -m playwright install chromium
 
 ### 1b) (Optional) Run the UI dashboard
 
-The repo includes a Next.js dashboard under `ui/` that calls the FastAPI endpoints and renders the generated briefs.
+The repo includes a Next.js dashboard under `ui/` that loads prospects from backend storage, calls the FastAPI product endpoints, and renders the generated briefs.
 
 Terminal 1 (API):
 ```bash
@@ -64,16 +64,24 @@ uvicorn agent.main:app --reload --port 8000
 
 Terminal 2 (UI):
 ```bash
+npm run dev
+```
+
+If you have not installed the UI dependencies yet:
+```bash
 cd ui
 npm install
-npm run dev
 ```
 
 Open `http://localhost:3000`.
 
+Prospects are loaded from `data/prospects.json` by default. You can change the store path with `PROSPECTS_STORE_PATH`.
+
 For Render:
 - Backend: `https://conversion-engine-for-sales-automation.onrender.com`
 - UI should set `AGENT_API_URL` to your backend URL (see `ui/README.md`).
+- `resend` is the default outbound email provider. Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for the normal path.
+- Set `EMAIL_PROVIDER=mailersend` with `MAILERSEND_API_KEY` and `MAILERSEND_FROM_EMAIL` if you want outbound delivery and inbound reply routing through MailerSend instead.
 
 ### 2) Generate the hiring signal brief (core artifact)
 

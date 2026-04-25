@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 type EnrichRequest = {
+  prospect_id?: string;
   company_name: string;
   domain?: string | null;
   use_playwright?: boolean;
@@ -21,6 +22,23 @@ export async function POST(req: Request) {
 
   if (!payload.company_name || !payload.company_name.trim()) {
     return NextResponse.json({ error: "`company_name` is required" }, { status: 400 });
+  }
+
+  if (payload.prospect_id && payload.prospect_id.trim()) {
+    const res = await fetch(`${AGENT_API_URL}/prospects/${encodeURIComponent(payload.prospect_id)}/enrich`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        domain: payload.domain ?? null,
+        use_playwright: Boolean(payload.use_playwright),
+        peers_limit: payload.peers_limit ?? 10,
+        leadership_sources: payload.leadership_sources ?? []
+      }),
+      cache: "no-store"
+    });
+
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
   }
 
   const outDir = payload.out_dir ?? "data/briefs";
@@ -62,4 +80,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ status: "ok", hiring, competitor_gap }, { status: 200 });
 }
-

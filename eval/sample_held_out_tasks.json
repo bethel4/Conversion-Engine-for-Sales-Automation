@@ -1,0 +1,62 @@
+[
+  {
+    "task_id": "weak_signal_question",
+    "claim_template": "you are aggressively scaling your engineering team",
+    "evidence": {
+      "engineering_roles": 2,
+      "signal_strength": "weak"
+    },
+    "confidence": "low",
+    "checks": {
+      "mode": "ask",
+      "question_required": true,
+      "audit_ok": true,
+      "min_tone_score": 0.7,
+      "required_substrings": [
+        "engineering"
+      ],
+      "forbidden_substrings": [
+        "aggressively"
+      ]
+    }
+  },
+  {
+    "task_id": "audit_repair_needed",
+    "claim_template": {
+      "low": "You are aggressively scaling your engineering team at 3x.",
+      "none": "How are you thinking about engineering capacity right now?"
+    },
+    "evidence": {
+      "engineering_roles": 1,
+      "signal_strength": "weak"
+    },
+    "confidence": "low",
+    "checks": {
+      "mode": "open",
+      "question_required": true,
+      "audit_ok": true,
+      "min_tone_score": 0.7,
+      "forbidden_substrings": [
+        "3x",
+        "aggressively"
+      ]
+    }
+  },
+  {
+    "task_id": "medium_confidence_hedge",
+    "claim_template": "your team has grown 3.0x in the past year",
+    "baseline_text": "your team has grown 3.0x in the past year",
+    "evidence": {
+      "engineering_roles": 5
+    },
+    "confidence": "medium",
+    "checks": {
+      "mode": "hedge",
+      "audit_ok": true,
+      "min_tone_score": 0.7,
+      "required_substrings": [
+        "it looks like"
+      ]
+    }
+  }
+]

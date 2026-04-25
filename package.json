@@ -1,0 +1,10 @@
+{
+  "name": "conversion-engine-for-sales-automation",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix ui run dev",
+    "dev:ui": "npm --prefix ui run dev",
+    "build": "npm --prefix ui run build",
+    "start": "npm --prefix ui run start"
+  }
+}

@@ -55,6 +55,39 @@ class TestEmailHandler(unittest.TestCase):
 
     @patch.dict(
         "os.environ",
+        {
+            "EMAIL_PROVIDER": "mailersend",
+            "MAILERSEND_API_KEY": "test-key",
+            "MAILERSEND_FROM_EMAIL": "sales@example.com",
+        },
+        clear=False,
+    )
+    @patch("agent.main.requests.post")
+    def test_send_email_can_use_mailersend(self, mock_post: Mock) -> None:
+        response = Mock()
+        response.ok = True
+        response.text = ""
+        response.headers = {"X-Message-Id": "ms_123"}
+        response.json.side_effect = ValueError("no json")
+        mock_post.return_value = response
+
+        result = self.client.post(
+            "/emails/send",
+            json={
+                "to": ["lead@example.com"],
+                "subject": "Checking in",
+                "text": "Hello from sales",
+            },
+        )
+
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json()["provider"], "mailersend")
+        self.assertEqual(result.json()["result"]["id"], "ms_123")
+        _, kwargs = mock_post.call_args
+        self.assertEqual(kwargs["headers"]["Authorization"], "Bearer test-key")
+
+    @patch.dict(
+        "os.environ",
         {"RESEND_API_KEY": "test-key", "RESEND_FROM_EMAIL": "sales@example.com"},
         clear=False,
     )
@@ -92,6 +125,33 @@ class TestEmailHandler(unittest.TestCase):
                     "to": ["sales@example.com"],
                     "subject": "Re: Hello",
                     "text_body": "Interested, tell me more.",
+                },
+            },
+        )
+
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0].event_type, "reply")
+        self.assertEqual(observed[0].sender, "lead@example.com")
+
+    def test_mailersend_inbound_payload_is_accepted(self) -> None:
+        observed = []
+        set_email_event_handler(observed.append)
+
+        result = self.client.post(
+            "/emails/webhook",
+            json={
+                "type": "inbound.message",
+                "data": {
+                    "id": "inbound_123",
+                    "from": {"email": "lead@example.com"},
+                    "recipients": {
+                        "to": {
+                            "data": [{"email": "sales@example.com"}]
+                        }
+                    },
+                    "subject": "Re: Hello",
+                    "text": "Interested, tell me more.",
                 },
             },
         )
