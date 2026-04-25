@@ -45,6 +45,12 @@ def produce_competitor_gap_brief(
 
     Output:
       { company, prospect_percentile, peers, gaps, meta }
+
+    Selection criteria:
+    - same sector/industry overlap as the target
+    - same employee bucket where available
+    - top 5-10 ranked by industry-overlap first, then AI-maturity score
+    - explicit sparse-sector handling when fewer than 5 viable peers exist
     """
 
     if today is None:
@@ -60,7 +66,7 @@ def produce_competitor_gap_brief(
     if target is None:
         raise ValueError(f"No Crunchbase record for company: {company_name}")
 
-    peers = _find_peers(records, target, limit=peers_limit)
+    peers, sparse_sector = _find_peers(records, target, limit=peers_limit)
     peer_summaries = []
     peer_scores = []
     for peer in peers:
@@ -69,9 +75,8 @@ def produce_competitor_gap_brief(
         peer_summaries.append({**summary, "ai_maturity": score})
         peer_scores.append(score["score"])
 
-    prospect_score = hiring_brief.get("ai_maturity", {}).get("score")
-    if not isinstance(prospect_score, int):
-        prospect_score = _score_peer_ai(target)["score"]
+    prospect_ai = _score_target_ai(hiring_brief)
+    prospect_score = prospect_ai["score"]
 
     percentile = _percentile(prospect_score, peer_scores)
     gaps = _derive_gaps(target, peer_summaries)
@@ -83,6 +88,7 @@ def produce_competitor_gap_brief(
             "industries": hiring_brief.get("company", {}).get("industries"),
             "num_employees": hiring_brief.get("company", {}).get("num_employees"),
         },
+        "prospect_ai_maturity": prospect_ai,
         "prospect_percentile": percentile,
         "peers": peer_summaries,
         "gaps": gaps,
@@ -91,6 +97,12 @@ def produce_competitor_gap_brief(
             "peer_count": len(peer_summaries),
             "dataset_path": str(dataset_path),
             "method": "heuristic_local",
+            "selection_criteria": {
+                "industry_overlap_required": True,
+                "same_employee_bucket_preferred": True,
+                "peer_limit": max(5, min(peers_limit, 10)),
+                "sparse_sector": sparse_sector,
+            },
         },
     }
 
@@ -157,27 +169,27 @@ def _find_peers(
     target: dict[str, Any],
     *,
     limit: int,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], bool]:
     target_ind = _extract_industries(target)
     target_bucket = _employee_bucket(target)
     target_name = normalize_company_name(str(target.get("name") or ""))
 
-    candidates: list[tuple[int, dict[str, Any]]] = []
+    candidates: list[tuple[int, int, dict[str, Any]]] = []
     for r in records:
         name = normalize_company_name(str(r.get("name") or ""))
         if not name or name == target_name:
             continue
         bucket = _employee_bucket(r)
-        if target_bucket and bucket and bucket != target_bucket:
-            continue
         ind = _extract_industries(r)
         overlap = len(target_ind.intersection(ind))
         if overlap <= 0:
             continue
-        candidates.append((overlap, r))
+        same_bucket = 1 if target_bucket and bucket and bucket == target_bucket else 0
+        candidates.append((same_bucket, overlap, r))
 
-    candidates.sort(key=lambda x: x[0], reverse=True)
-    return [r for _, r in candidates[:limit]]
+    candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    trimmed = [r for _, _, r in candidates[: max(5, min(limit, 10))]]
+    return trimmed, len(trimmed) < 5
 
 
 def _summarize_company(record: dict[str, Any]) -> dict[str, Any]:
@@ -229,6 +241,16 @@ def _score_peer_ai(record: dict[str, Any]) -> dict[str, Any]:
     return ai_maturity.score_ai_maturity(signals)
 
 
+def _score_target_ai(hiring_brief: dict[str, Any]) -> dict[str, Any]:
+    ai = hiring_brief.get("ai_maturity") if isinstance(hiring_brief.get("ai_maturity"), dict) else {}
+    return {
+        "score": int(ai.get("score") or 0),
+        "confidence": ai.get("confidence"),
+        "evidence_count": ai.get("evidence_count"),
+        "justification": ai.get("justification"),
+    }
+
+
 def _percentile(prospect_score: int, peer_scores: list[int]) -> int:
     if not peer_scores:
         return 50
@@ -257,10 +279,12 @@ def _derive_gaps(target: dict[str, Any], peers: list[dict[str, Any]]) -> list[di
     gaps: list[dict[str, Any]] = []
     for name, keywords in features:
         top_has = 0
+        evidence_rows: list[dict[str, Any]] = []
         for p in top:
             feats = p.get("features") if isinstance(p, dict) else None
             if isinstance(feats, dict) and feats.get(name) is True:
                 top_has += 1
+                evidence_rows.append(_gap_evidence_for_peer(p, name))
 
         prevalence = top_has / max(1, len(top))
         target_has = any(any(k in t for t in target_tech) for k in keywords) or any(
@@ -278,6 +302,7 @@ def _derive_gaps(target: dict[str, Any], peers: list[dict[str, Any]]) -> list[di
                 "evidence": {
                     "top_quartile_prevalence": round(prevalence, 2),
                     "sample_peers": sample_peers,
+                    "public_signals": evidence_rows[:3],
                 },
                 "pitch_hook": _pitch_hook(name, sample_peers),
             }
@@ -298,6 +323,23 @@ def _compute_features(record: dict[str, Any]) -> dict[str, bool]:
         "ai_tech_stack": has_any(AI_TECH_KEYWORDS),
         "data_stack": has_any(DATA_TECH_KEYWORDS),
         "modern_cloud": has_any(MODERN_CLOUD_KEYWORDS),
+    }
+
+
+def _gap_evidence_for_peer(peer: dict[str, Any], gap: str) -> dict[str, Any]:
+    features = peer.get("features") if isinstance(peer.get("features"), dict) else {}
+    ai = peer.get("ai_maturity") if isinstance(peer.get("ai_maturity"), dict) else {}
+    evidence_label = {
+        "ai_tech_stack": "named tool in stack",
+        "data_stack": "named tool in stack",
+        "modern_cloud": "named cloud/platform tool",
+    }.get(gap, "public signal")
+    return {
+        "competitor_name": peer.get("name"),
+        "evidence_type": evidence_label,
+        "evidence_summary": f"{peer.get('name')} shows {gap.replace('_', ' ')} with AI maturity score {ai.get('score', 0)}.",
+        "source_url": peer.get("url"),
+        "features": features,
     }
 
 

@@ -94,6 +94,9 @@ class TestBriefsPipeline(unittest.TestCase):
         self.assertIn("_confidence", brief["jobs"])
         self.assertIn("_confidence", brief["layoffs"])
         self.assertIn("_confidence", brief["leadership_change"])
+        self.assertIn("checked_at", brief["jobs"])
+        self.assertIn("signal_timestamp", brief["funding"])
+        self.assertIn("source_attribution", brief["company"])
         self.assertEqual(brief["funding"]["funded"], True)
         self.assertEqual(brief["ai_maturity"]["score"], 3)
         self.assertTrue(brief["ai_maturity"]["inputs"]["has_named_ai_leadership"])
@@ -113,6 +116,8 @@ class TestBriefsPipeline(unittest.TestCase):
         gap = competitor_gap.produce_competitor_gap_brief("Acme", hiring_brief=hiring, today=today, peers_limit=5)
         self.assertIn("peers", gap)
         self.assertGreaterEqual(len(gap["peers"]), 1)
+        self.assertIn("selection_criteria", gap["meta"])
+        self.assertIn("prospect_ai_maturity", gap)
 
     def test_icp_classifier(self) -> None:
         brief = {

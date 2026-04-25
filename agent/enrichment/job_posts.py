@@ -5,6 +5,7 @@ import json
 import re
 from datetime import date, timedelta
 from pathlib import Path
+from urllib.parse import urljoin, urlparse
 from typing import Any, Iterable
 
 import requests
@@ -65,6 +66,13 @@ AI_ML_KEYWORDS = (
     "mlops",
 )
 
+PUBLIC_JOB_SOURCES = (
+    "company_careers_page",
+    "builtin_public_company_jobs",
+    "wellfound_public_company_jobs",
+    "linkedin_public_company_jobs",
+)
+
 
 def scrape_job_posts(
     domain: str,
@@ -77,10 +85,26 @@ def scrape_job_posts(
 ) -> dict[str, Any]:
     """
     Returns:
-      { total_open_roles, engineering_roles, ai_ml_roles, velocity_60d, signal_strength }
+      {
+        total_open_roles,
+        engineering_roles,
+        ai_ml_roles,
+        velocity_60d,
+        open_roles_60_days_ago,
+        signal_strength,
+        source_url,
+        source_urls,
+        checked_at,
+        robots_policy
+      }
 
-    If a historical snapshot ~60 days ago is available in SQLite, velocity_60d is computed.
-    Otherwise velocity_60d is None.
+    Public-page only constraints:
+    - Only first-party careers pages plus public BuiltIn / Wellfound / LinkedIn company job pages.
+    - No login-required flows, private APIs, or authenticated scraping.
+    - robots.txt is checked before fetching each page and non-allowed pages are skipped.
+
+    `velocity_60d` is computed as the engineering-role count delta versus the nearest
+    cached snapshot from ~60 days ago.
     """
 
     if today is None:
@@ -95,15 +119,17 @@ def scrape_job_posts(
         return cached  # type: ignore[return-value]
 
     if html is None:
-        urls = guess_careers_urls(domain)
-        html, used_url = _fetch_first_html(urls, use_playwright=use_playwright)
+        urls = guess_public_job_source_urls(domain, company_name=company_name)
+        html, used_url, used_meta = _fetch_first_html(urls, use_playwright=use_playwright)
     else:
+        urls = []
         used_url = None
+        used_meta = {"source": "provided_html", "robots_allowed": True, "robots_txt_url": None}
 
     titles = extract_job_titles(html or "")
     counts = classify_job_titles(titles)
 
-    velocity = compute_velocity_60d(
+    velocity, previous_count = compute_velocity_60d(
         key,
         current_engineering_roles=counts["engineering_roles"],
         today=today,
@@ -112,8 +138,18 @@ def scrape_job_posts(
     result = {
         **counts,
         "velocity_60d": velocity,
+        "open_roles_60_days_ago": previous_count,
         "signal_strength": _signal_strength(counts["engineering_roles"]),
         "source_url": used_url,
+        "source_urls": [item["url"] for item in urls],
+        "source_type": used_meta.get("source"),
+        "checked_at": today.isoformat(),
+        "robots_policy": {
+            "checked": True,
+            "allowed": bool(used_meta.get("robots_allowed", True)),
+            "robots_txt_url": used_meta.get("robots_txt_url"),
+            "public_page_only": True,
+        },
     }
 
     # Persist snapshot for future velocity calculations.
@@ -123,7 +159,7 @@ def scrape_job_posts(
     return result
 
 
-def guess_careers_urls(domain: str) -> list[str]:
+def guess_public_job_source_urls(domain: str, *, company_name: str | None = None) -> list[dict[str, str]]:
     d = domain.strip().rstrip("/")
     if not d:
         return []
@@ -133,12 +169,16 @@ def guess_careers_urls(domain: str) -> list[str]:
         base = d
         d = re.sub(r"^https?://", "", d).split("/", 1)[0]
 
+    slug = normalize_company_name(company_name or d).replace(" ", "-")
     return [
-        f"{base}/careers",
-        f"{base}/jobs",
-        f"{base}/careers/jobs",
-        f"https://jobs.{d}",
-        f"https://careers.{d}",
+        {"source": "company_careers_page", "url": f"{base}/careers"},
+        {"source": "company_careers_page", "url": f"{base}/jobs"},
+        {"source": "company_careers_page", "url": f"{base}/careers/jobs"},
+        {"source": "company_careers_page", "url": f"https://jobs.{d}"},
+        {"source": "company_careers_page", "url": f"https://careers.{d}"},
+        {"source": "builtin_public_company_jobs", "url": f"https://www.builtin.com/company/{slug}/jobs"},
+        {"source": "wellfound_public_company_jobs", "url": f"https://wellfound.com/company/{slug}/jobs"},
+        {"source": "linkedin_public_company_jobs", "url": f"https://www.linkedin.com/company/{slug}/jobs/"},
     ]
 
 
@@ -249,7 +289,7 @@ def compute_velocity_60d(
     current_engineering_roles: int,
     today: date,
     days_back: int = 60,
-) -> float | None:
+) -> tuple[int | None, int | None]:
     target = today - timedelta(days=days_back)
     rows = list_cache("job_posts_snapshot", f"{company_key}:")
     best_count: int | None = None
@@ -275,8 +315,8 @@ def compute_velocity_60d(
             best_count = prev_eng
 
     if best_count is None or best_count < 1:
-        return None
-    return round(current_engineering_roles / best_count, 3)
+        return None, None
+    return current_engineering_roles - best_count, best_count
 
 
 def is_engineering_role(title: str) -> bool:
@@ -317,17 +357,65 @@ def _clean_title(text: str) -> str:
     return text
 
 
-def _fetch_first_html(urls: list[str], *, use_playwright: bool) -> tuple[str, str | None]:
+def _fetch_first_html(urls: list[dict[str, str]], *, use_playwright: bool) -> tuple[str, str | None, dict[str, Any]]:
     last_err: Exception | None = None
-    for url in urls:
+    for entry in urls:
+        url = entry["url"]
         try:
-            return fetch_html(url, use_playwright=use_playwright), url
+            robots = check_robots_txt(url)
+            if not robots["allowed"]:
+                last_err = RuntimeError(f"robots.txt disallows fetch for {url}")
+                continue
+            return fetch_html(url, use_playwright=use_playwright), url, {
+                "source": entry["source"],
+                "robots_allowed": True,
+                "robots_txt_url": robots["robots_txt_url"],
+            }
         except Exception as exc:
             last_err = exc
             continue
     if last_err is not None:
         raise last_err
-    return "", None
+    return "", None, {"source": None, "robots_allowed": False, "robots_txt_url": None}
+
+
+def check_robots_txt(url: str, *, timeout_seconds: int = 10) -> dict[str, Any]:
+    parsed = urlparse(url)
+    robots_txt_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
+    path = parsed.path or "/"
+    try:
+        response = requests.get(
+            robots_txt_url,
+            timeout=timeout_seconds,
+            headers={"User-Agent": "TenaciousEnrichmentBot/1.0"},
+        )
+    except requests.RequestException:
+        return {"allowed": True, "robots_txt_url": robots_txt_url}
+    if response.status_code >= 400:
+        return {"allowed": True, "robots_txt_url": robots_txt_url}
+
+    allow = True
+    applies = False
+    for raw_line in response.text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key_cf = key.strip().casefold()
+        value = value.strip()
+        if key_cf == "user-agent":
+            applies = value in {"*", "TenaciousEnrichmentBot", "TenaciousEnrichmentBot/1.0"}
+        elif applies and key_cf == "disallow" and value:
+            disallowed_path = urljoin(f"{parsed.scheme}://{parsed.netloc}", value)
+            disallowed_only_path = urlparse(disallowed_path).path or value
+            if path.startswith(disallowed_only_path):
+                allow = False
+        elif applies and key_cf == "allow" and value:
+            allowed_path = urljoin(f"{parsed.scheme}://{parsed.netloc}", value)
+            allowed_only_path = urlparse(allowed_path).path or value
+            if path.startswith(allowed_only_path):
+                allow = True
+    return {"allowed": allow, "robots_txt_url": robots_txt_url}
 
 
 def fetch_html(url: str, *, use_playwright: bool = False, timeout_seconds: int = 15) -> str:
@@ -372,7 +460,18 @@ def _empty() -> dict[str, Any]:
         "engineering_roles": 0,
         "ai_ml_roles": 0,
         "velocity_60d": None,
+        "open_roles_60_days_ago": None,
         "signal_strength": "none",
+        "source_url": None,
+        "source_urls": [],
+        "source_type": None,
+        "checked_at": None,
+        "robots_policy": {
+            "checked": True,
+            "allowed": True,
+            "robots_txt_url": None,
+            "public_page_only": True,
+        },
     }
 
 

@@ -81,7 +81,10 @@ class TestSignals(unittest.TestCase):
         self.assertEqual(result["engineering_roles"], 2)
         self.assertEqual(result["ai_ml_roles"], 1)
         self.assertEqual(result["signal_strength"], "weak")
-        self.assertEqual(result["velocity_60d"], round(2 / 3, 3))
+        self.assertEqual(result["velocity_60d"], -1)
+        self.assertEqual(result["open_roles_60_days_ago"], 3)
+        self.assertTrue(result["robots_policy"]["public_page_only"])
+        self.assertIsNotNone(result["checked_at"])
 
     def test_detect_leadership_change(self) -> None:
         sources = [

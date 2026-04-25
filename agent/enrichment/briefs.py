@@ -125,31 +125,75 @@ def produce_hiring_signal_brief(
             "num_employees": firm["firmographics"].get("num_employees"),
             "industries": firm["firmographics"].get("industries"),
             "cb_rank": firm["firmographics"].get("cb_rank"),
+            "checked_at": today.isoformat(),
+            "signal_timestamp": today.isoformat(),
+            "source_attribution": {
+                "source_type": "crunchbase_odm",
+                "source_url": firm["crunchbase"]["url"],
+            },
             "_confidence": _company_confidence(firm),
         },
         "funding": {
             **firm["funding"],
+            "checked_at": today.isoformat(),
+            "signal_timestamp": _date_minus_days(today, firm["funding"].get("days_ago")),
+            "source_attribution": {
+                "source_type": "crunchbase_odm",
+                "source_url": firm["crunchbase"]["url"],
+            },
             "_confidence": _confidence_or_none(firm["funding"].get("confidence")),
         },
         "jobs": {
             **jobs,
+            "checked_at": jobs.get("checked_at") or today.isoformat(),
+            "signal_timestamp": jobs.get("checked_at") or today.isoformat(),
+            "source_attribution": {
+                "source_type": jobs.get("source_type"),
+                "source_url": jobs.get("source_url"),
+                "source_urls": jobs.get("source_urls"),
+                "robots_policy": jobs.get("robots_policy"),
+            },
             "_confidence": _jobs_confidence(jobs),
         },
         "layoffs": {
             **layoffs_signal,
+            "checked_at": today.isoformat(),
+            "signal_timestamp": _date_minus_days(today, layoffs_signal.get("days_ago")),
+            "source_attribution": {
+                "source_type": "layoffs_fyi_csv",
+                "source_url": str(layoffs_dataset_path) if layoffs_dataset_path else "data/raw/layoffs/layoffs.csv",
+            },
             "_confidence": _confidence_or_none(layoffs_signal.get("confidence")),
         },
         "leadership_change": {
             **leadership_signal,
+            "checked_at": today.isoformat(),
+            "signal_timestamp": _date_minus_days(today, leadership_signal.get("days_ago")),
+            "source_attribution": {
+                "source_type": "leadership_press_or_crunchbase",
+                "source_url": leadership_signal.get("source"),
+            },
             "_confidence": _confidence_or_none(leadership_signal.get("confidence")),
         },
         "ai_maturity": {
             **ai_signal,
             "inputs": ai_inputs,
+            "checked_at": today.isoformat(),
+            "signal_timestamp": today.isoformat(),
+            "source_attribution": {
+                "source_type": "derived_from_hiring_leadership_stack_signals",
+                "source_url": None,
+            },
             "_confidence": _confidence_or_none(ai_signal.get("confidence")),
         },
         "tech_stack": {
             **tech_stack,
+            "checked_at": today.isoformat(),
+            "signal_timestamp": today.isoformat(),
+            "source_attribution": {
+                "source_type": "crunchbase_tech_stack_fields",
+                "source_url": firm["crunchbase"]["url"],
+            },
             "_confidence": _confidence_or_none(tech_stack.get("confidence")),
         },
         "meta": {
@@ -260,6 +304,12 @@ def _jobs_confidence(jobs: dict[str, Any]) -> str:
     if strength == "weak":
         return "low"
     return "none"
+
+
+def _date_minus_days(today: date, days_ago: Any) -> str | None:
+    if not isinstance(days_ago, int):
+        return None
+    return date.fromordinal(today.toordinal() - days_ago).isoformat()
 
 
 def _domain_from_website(website: Any) -> str | None:
