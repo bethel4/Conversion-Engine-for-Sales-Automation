@@ -15,7 +15,13 @@ class TestHubSpotNoteFormatting(unittest.TestCase):
             body_json={
                 "company_name": "Consolety",
                 "thread_id": "thread_consolety_001",
-                "icp": {"segment": "abstain"},
+                "firmographics": {"employees": "11-50"},
+                "funding": {"round_type": "series_b"},
+                "job_signals": {"engineering_roles": 5},
+                "layoffs": {"had_layoff": False},
+                "leadership": {"new_leader_detected": True},
+                "ai_maturity": {"score": 3},
+                "icp_classification": {"segment": "abstain"},
             },
         )
 
@@ -25,6 +31,13 @@ class TestHubSpotNoteFormatting(unittest.TestCase):
         self.assertIn("Email: bethelyohannes4@gmail.com", body)
         self.assertIn("Thread ID: thread_consolety_001", body)
         self.assertIn("Timestamp: 2026-04-25T08:30:00+00:00", body)
+        self.assertIn("Firmographics:", body)
+        self.assertIn("Funding:", body)
+        self.assertIn("Job signals:", body)
+        self.assertIn("Layoffs:", body)
+        self.assertIn("Leadership:", body)
+        self.assertIn("AI maturity:", body)
+        self.assertIn("ICP classification:", body)
         self.assertIn("Data:", body)
         self.assertIn('"company_name": "Consolety"', body)
 
@@ -48,76 +61,35 @@ class TestHubSpotNoteFormatting(unittest.TestCase):
 
 
 class TestHubSpotEnrichmentProperties(unittest.TestCase):
-    def test_build_enriched_contact_properties_maps_requested_fields(self) -> None:
-        properties = hubspot_mcp.build_enriched_contact_properties(
+    def test_build_standard_contact_properties_maps_only_standard_fields(self) -> None:
+        properties = hubspot_mcp.build_standard_contact_properties(
             email="lead@example.com",
-            phone="+15551234567",
             company_name="Stripe",
-            icp_segment="segment_1",
-            enrichment={
-                "confidence": 0.91,
-                "pitch_angle": "fresh_funding_scale_execution",
-                "signals": {
-                    "company": {
-                        "num_employees": "11-50",
-                        "industries": ["B2B SaaS", "Payments"],
-                    },
-                    "funding": {
-                        "round_type": "series_b",
-                        "amount_usd": 14000000,
-                        "days_ago": 45,
-                    },
-                    "jobs": {
-                        "engineering_roles": 8,
-                        "velocity_60d": 1.667,
-                        "_confidence": "high",
-                    },
-                    "layoffs": {
-                        "had_layoff": False,
-                        "days_ago": None,
-                    },
-                    "leadership_change": {
-                        "new_leader_detected": True,
-                        "role": "cto",
-                    },
-                    "ai_maturity": {
-                        "score": 3,
-                        "_confidence": "medium",
-                    },
-                },
-            },
+            firstname="Ada",
+            lastname="Lovelace",
+            lifecyclestage="salesqualifiedlead",
+            hs_lead_status="OPEN",
         )
 
         self.assertEqual(properties["company"], "Stripe")
-        self.assertEqual(properties["tenacious_company_size"], "11-50")
-        self.assertEqual(properties["tenacious_industry"], "B2B SaaS, Payments")
-        self.assertEqual(properties["tenacious_funding_stage"], "series_b")
-        self.assertEqual(properties["tenacious_funding_amount"], 14000000)
-        self.assertEqual(properties["tenacious_funding_days_ago"], 45)
-        self.assertEqual(properties["tenacious_engineering_roles"], 8)
-        self.assertEqual(properties["tenacious_job_velocity_60d"], 1.667)
-        self.assertEqual(properties["tenacious_job_signal_confidence"], "high")
-        self.assertEqual(properties["tenacious_layoff_detected"], False)
-        self.assertEqual(properties["tenacious_layoff_days_ago"], 0)
-        self.assertEqual(properties["tenacious_leadership_change"], True)
-        self.assertEqual(properties["tenacious_leadership_role"], "cto")
-        self.assertEqual(properties["tenacious_ai_maturity_score"], 3)
-        self.assertEqual(properties["tenacious_ai_maturity_confidence"], "medium")
-        self.assertEqual(properties["tenacious_icp_segment"], "segment_1")
-        self.assertEqual(properties["tenacious_icp_confidence"], 0.91)
-        self.assertTrue(properties["tenacious_enrichment_timestamp"])
+        self.assertEqual(properties["firstname"], "Ada")
+        self.assertEqual(properties["lastname"], "Lovelace")
+        self.assertEqual(properties["lifecyclestage"], "salesqualifiedlead")
+        self.assertEqual(properties["hs_lead_status"], "OPEN")
+        self.assertEqual(
+            set(properties.keys()),
+            {"email", "company", "firstname", "lastname", "lifecyclestage", "hs_lead_status"},
+        )
 
     @patch("agent.hubspot_mcp._request")
-    def test_write_enriched_contact_creates_missing_properties_then_updates_contact(self, mock_request) -> None:
+    def test_write_enriched_contact_updates_standard_fields_only_when_optional_patch_fails(self, mock_request) -> None:
         def side_effect(method: str, path: str, *, json_body=None):
-            if method == "GET" and path.startswith("/crm/v3/properties/contacts/"):
-                raise RuntimeError("HubSpot MCP error 404: not found")
             if method == "POST" and path == "/crm/v3/objects/contacts/search":
                 return {"results": [{"id": "123"}]}
             if method == "PATCH" and path == "/crm/v3/objects/contacts/123":
+                if "tenacious_icp_segment" in json_body["properties"]:
+                    raise RuntimeError("HubSpot MCP error 403: MISSING_SCOPES")
                 return {"id": "123", "properties": json_body["properties"]}
-            if method == "POST" and path == "/crm/v3/properties/contacts":
-                return {"name": json_body["name"]}
             raise AssertionError(f"Unexpected request: {method} {path}")
 
         mock_request.side_effect = side_effect
@@ -145,17 +117,18 @@ class TestHubSpotEnrichmentProperties(unittest.TestCase):
         patch_calls = [
             call for call in mock_request.call_args_list if call.args[0] == "PATCH"
         ]
-        self.assertEqual(len(patch_calls), 1)
+        self.assertEqual(len(patch_calls), 2)
         updated_properties = patch_calls[0].kwargs["json_body"]["properties"]
-        self.assertEqual(updated_properties["tenacious_icp_segment"], "segment_1")
-        self.assertEqual(updated_properties["tenacious_engineering_roles"], 8)
-        created_property_names = [
-            call.kwargs["json_body"]["name"]
-            for call in mock_request.call_args_list
-            if call.args[0] == "POST" and call.args[1] == "/crm/v3/properties/contacts"
-        ]
-        self.assertIn("tenacious_company_size", created_property_names)
-        self.assertIn("tenacious_enrichment_timestamp", created_property_names)
+        self.assertEqual(updated_properties["email"], "lead@example.com")
+        self.assertEqual(updated_properties["company"], "Stripe")
+        self.assertEqual(updated_properties["lifecyclestage"], "salesqualifiedlead")
+        self.assertEqual(updated_properties["hs_lead_status"], "OPEN")
+        self.assertFalse(
+            any(
+                call.args[1] == "/crm/v3/properties/contacts"
+                for call in mock_request.call_args_list
+            )
+        )
 
 
 if __name__ == "__main__":

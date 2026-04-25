@@ -1,4 +1,7 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 try:
@@ -21,10 +24,28 @@ else:
 class TestEmailHandler(unittest.TestCase):
     def setUp(self) -> None:
         self.client = TestClient(app)
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.store_path = Path(self.tempdir.name) / "prospects.json"
+        self.store_path.write_text(
+            json.dumps(
+                [
+                    {
+                        "id": "consolety",
+                        "prospect_name": "Bethel Yohannes",
+                        "company": "Consolety",
+                        "email": "lead@example.com",
+                        "thread_id": "thread_consolety_001",
+                        "last_message_id": "sent_123",
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
         set_email_event_handler(lambda event: None)
         set_sms_event_handler(lambda event: None)
 
     def tearDown(self) -> None:
+        self.tempdir.cleanup()
         set_email_event_handler(lambda event: None)
         set_sms_event_handler(lambda event: None)
 
@@ -52,6 +73,26 @@ class TestEmailHandler(unittest.TestCase):
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.json()["provider"], "resend")
         mock_post.assert_called_once()
+
+    @patch.dict(
+        "os.environ",
+        {"LIVE_OUTBOUND": "false", "RESEND_API_KEY": "test-key", "RESEND_FROM_EMAIL": "sales@example.com"},
+        clear=False,
+    )
+    @patch("agent.main.requests.post")
+    def test_send_email_is_blocked_when_live_outbound_is_disabled(self, mock_post: Mock) -> None:
+        result = self.client.post(
+            "/emails/send",
+            json={
+                "to": ["lead@example.com"],
+                "subject": "Checking in",
+                "text": "Hello from sales",
+            },
+        )
+
+        self.assertEqual(result.status_code, 403)
+        self.assertIn("LIVE_OUTBOUND=false", result.json()["detail"])
+        mock_post.assert_not_called()
 
     @patch.dict(
         "os.environ",
@@ -111,28 +152,51 @@ class TestEmailHandler(unittest.TestCase):
         self.assertEqual(result.status_code, 502)
         self.assertIn("Resend error 422", result.json()["detail"])
 
-    def test_reply_webhook_emits_downstream_event(self) -> None:
+    @patch("agent.main.requests.get")
+    def test_reply_webhook_emits_downstream_event(self, mock_get: Mock) -> None:
         observed = []
         set_email_event_handler(observed.append)
+        mock_response = Mock()
+        mock_response.ok = True
+        mock_response.json.return_value = {
+            "id": "email_123",
+            "from": "Lead <lead@example.com>",
+            "to": ["sales@example.com"],
+            "subject": "Re: Hello",
+            "text": "Interested, tell me more.",
+            "html": "<p>Interested, tell me more.</p>",
+            "message_id": "<abc123>",
+            "created_at": "2026-04-25T12:00:00Z",
+        }
+        mock_get.return_value = mock_response
 
-        result = self.client.post(
-            "/emails/webhook",
-            json={
-                "type": "email.received",
-                "data": {
-                    "email_id": "email_123",
-                    "from": "lead@example.com",
-                    "to": ["sales@example.com"],
-                    "subject": "Re: Hello",
-                    "text_body": "Interested, tell me more.",
-                },
+        with patch.dict(
+            "os.environ",
+            {
+                "PROSPECTS_STORE_PATH": str(self.store_path),
+                "CALCOM_BOOKING_LINK": "https://cal.example.com/book",
+                "RESEND_API_KEY": "test-key",
             },
-        )
+            clear=False,
+        ):
+            result = self.client.post(
+                "/emails/webhook",
+                json={
+                    "type": "email.received",
+                    "data": {
+                        "email_id": "email_123",
+                        "from": "Lead <lead@example.com>",
+                        "to": ["sales@example.com"],
+                        "subject": "Re: Hello",
+                    },
+                },
+            )
 
         self.assertEqual(result.status_code, 200)
         self.assertEqual(len(observed), 1)
         self.assertEqual(observed[0].event_type, "reply")
         self.assertEqual(observed[0].sender, "lead@example.com")
+        self.assertEqual(result.json()["reply_intent"]["label"], "interested")
 
     def test_mailersend_inbound_payload_is_accepted(self) -> None:
         observed = []
@@ -160,6 +224,28 @@ class TestEmailHandler(unittest.TestCase):
         self.assertEqual(len(observed), 1)
         self.assertEqual(observed[0].event_type, "reply")
         self.assertEqual(observed[0].sender, "lead@example.com")
+
+    def test_delivery_webhook_is_not_treated_as_reply(self) -> None:
+        observed = []
+        set_email_event_handler(observed.append)
+
+        with patch.dict("os.environ", {"PROSPECTS_STORE_PATH": str(self.store_path)}, clear=False):
+            result = self.client.post(
+                "/webhook",
+                json={
+                    "type": "email.delivered",
+                    "data": {
+                        "email_id": "sent_123",
+                        "from": "sales@example.com",
+                        "to": ["lead@example.com"],
+                        "subject": "Hello",
+                    },
+                },
+            )
+
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json()["event_type"], "email.delivered")
+        self.assertEqual(len(observed), 0)
 
     def test_bounce_webhook_is_accepted(self) -> None:
         observed = []
@@ -238,6 +324,30 @@ class TestEmailHandler(unittest.TestCase):
 
         self.assertEqual(result.status_code, 403)
         self.assertIn("warm leads", result.json()["detail"])
+        mock_post.assert_not_called()
+
+    @patch.dict(
+        "os.environ",
+        {
+            "LIVE_OUTBOUND": "false",
+            "AFRICASTALKING_USERNAME": "sandbox",
+            "AFRICASTALKING_API_KEY": "test-key",
+        },
+        clear=False,
+    )
+    @patch("agent.main.requests.post")
+    def test_send_sms_is_blocked_when_live_outbound_is_disabled(self, mock_post: Mock) -> None:
+        result = self.client.post(
+            "/sms/send",
+            json={
+                "to": ["+251900000000"],
+                "message": "Thanks for replying.",
+                "prior_email_reply_received": True,
+            },
+        )
+
+        self.assertEqual(result.status_code, 403)
+        self.assertIn("LIVE_OUTBOUND=false", result.json()["detail"])
         mock_post.assert_not_called()
 
     def test_sms_webhook_emits_downstream_event(self) -> None:

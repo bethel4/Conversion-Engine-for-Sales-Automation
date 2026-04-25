@@ -6,6 +6,9 @@ type SyncBookingRequest = {
   status?: "confirmed" | "accepted" | "completed";
   start_time?: string | null;
   title?: string | null;
+  attendee_name?: string | null;
+  attendee_email?: string | null;
+  timezone?: string | null;
 };
 
 const AGENT_API_URL = process.env.AGENT_API_URL ?? "http://127.0.0.1:8000";
@@ -32,7 +35,10 @@ export async function POST(req: Request) {
       booking_id: payload.booking_id,
       booking_status: payload.status ?? "confirmed",
       start_time: payload.start_time ?? null,
-      title: payload.title ?? null
+      title: payload.title ?? null,
+      attendee_name: payload.attendee_name ?? null,
+      attendee_email: payload.attendee_email ?? null,
+      timezone: payload.timezone ?? null
     }),
     cache: "no-store"
   });

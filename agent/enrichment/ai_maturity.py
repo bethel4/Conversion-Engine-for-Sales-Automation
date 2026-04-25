@@ -17,11 +17,11 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
 
     Input signals (best-effort; missing keys treated as absent):
       - ai_ml_roles, engineering_roles
-      - has_head_of_ai (bool)
-      - github_ai_repos (int)
-      - exec_llm_mentions (bool)
-      - ai_product_on_site (bool)
-      - ai_case_studies (bool)
+      - has_named_ai_leadership (bool)
+      - github_ai_activity (int)
+      - exec_ai_commentary (bool)
+      - modern_ml_stack (bool)
+      - strategic_ai_communications (bool)
 
     Returns:
       { score, confidence, evidence_count, justification, pitch_language_hint }
@@ -33,7 +33,7 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
     eng_roles = _as_int(signals.get("engineering_roles"))
     ratio = (ai_roles / eng_roles) if eng_roles and eng_roles > 0 else 0.0
 
-    # 1) Hiring for AI/ML roles (high weight)
+    # 1) AI-adjacent open roles (high weight)
     points = 0.0
     if ai_roles >= 5 or ratio >= 0.35:
         points = 1.0
@@ -46,52 +46,56 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
         weight = "low"
     else:
         weight = "none"
-    per_signal["ai_hiring"] = {
+    per_signal["ai_adjacent_open_roles"] = {
         "points": points,
         "weight": weight,
         "evidence": {"ai_ml_roles": ai_roles, "engineering_roles": eng_roles, "ratio": round(ratio, 3)},
     }
 
-    # 2) Leadership: Head of AI / ML (high)
-    per_signal["ai_leadership"] = _bool_signal(
-        bool(signals.get("has_head_of_ai")),
+    # 2) Named AI/ML leadership (high)
+    leadership_flag = bool(signals.get("has_named_ai_leadership", signals.get("has_head_of_ai")))
+    per_signal["named_ai_ml_leadership"] = _bool_signal(
+        leadership_flag,
         points=1.0,
         weight="high",
-        evidence={"has_head_of_ai": bool(signals.get("has_head_of_ai"))},
+        evidence={"has_named_ai_leadership": leadership_flag},
     )
 
-    # 3) GitHub AI repos (medium)
-    github_repos = _as_int(signals.get("github_ai_repos"))
-    per_signal["github_ai_activity"] = _threshold_signal(
-        github_repos,
+    # 3) Public GitHub org activity (medium)
+    github_activity = _as_int(signals.get("github_ai_activity", signals.get("github_ai_repos")))
+    per_signal["public_github_org_activity"] = _threshold_signal(
+        github_activity,
         high=(5, 1.0),
         medium=(1, 0.5),
         low=(0, 0.0),
-        evidence={"github_ai_repos": github_repos},
+        evidence={"github_ai_activity": github_activity},
     )
 
-    # 4) Exec mentions of LLM/AI (medium)
-    per_signal["exec_mentions"] = _bool_signal(
-        bool(signals.get("exec_llm_mentions")),
+    # 4) Executive commentary (medium)
+    exec_commentary_flag = bool(signals.get("exec_ai_commentary", signals.get("exec_llm_mentions")))
+    per_signal["executive_commentary"] = _bool_signal(
+        exec_commentary_flag,
         points=0.5,
         weight="medium",
-        evidence={"exec_llm_mentions": bool(signals.get("exec_llm_mentions"))},
+        evidence={"exec_ai_commentary": exec_commentary_flag},
     )
 
-    # 5) AI product positioning on site (medium)
-    per_signal["ai_product"] = _bool_signal(
-        bool(signals.get("ai_product_on_site")),
+    # 5) Modern data / ML stack (low)
+    modern_stack_flag = bool(signals.get("modern_ml_stack", signals.get("ai_product_on_site")))
+    per_signal["modern_data_ml_stack"] = _bool_signal(
+        modern_stack_flag,
         points=0.5,
-        weight="medium",
-        evidence={"ai_product_on_site": bool(signals.get("ai_product_on_site"))},
+        weight="low",
+        evidence={"modern_ml_stack": modern_stack_flag},
     )
 
-    # 6) AI case studies / customers (low)
-    per_signal["ai_case_studies"] = _bool_signal(
-        bool(signals.get("ai_case_studies")),
+    # 6) Strategic communications (low)
+    strategic_flag = bool(signals.get("strategic_ai_communications", signals.get("ai_case_studies")))
+    per_signal["strategic_communications"] = _bool_signal(
+        strategic_flag,
         points=0.25,
         weight="low",
-        evidence={"ai_case_studies": bool(signals.get("ai_case_studies"))},
+        evidence={"strategic_ai_communications": strategic_flag},
     )
 
     raw = sum(v["points"] for v in per_signal.values())

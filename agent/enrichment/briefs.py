@@ -15,6 +15,34 @@ from .crunchbase import (
     normalize_company_name,
 )
 
+AI_LEADERSHIP_KEYWORDS = (
+    "head of ai",
+    "vp ai",
+    "vice president ai",
+    "vp data",
+    "vice president data",
+    "chief scientist",
+    "head of machine learning",
+    "director of ai",
+    "director of machine learning",
+)
+
+EXEC_AI_KEYWORDS = ("ai", "artificial intelligence", "machine learning", "llm", "generative ai", "agentic")
+EXEC_ROLE_KEYWORDS = ("ceo", "cto", "chief executive", "chief technology", "founder")
+MODERN_ML_STACK_KEYWORDS = (
+    "dbt",
+    "snowflake",
+    "databricks",
+    "weights and biases",
+    "wandb",
+    "ray",
+    "vllm",
+    "mlflow",
+    "pytorch",
+    "tensorflow",
+    "hugging face",
+)
+
 
 def produce_hiring_signal_brief(
     company_name: str,
@@ -76,15 +104,16 @@ def produce_hiring_signal_brief(
     leadership_signal = leadership.detect_leadership_change(
         company_name, days=days_leadership, today=today, sources=leadership_sources
     )
-
-    ai_signal = ai_maturity.score_ai_maturity(
-        {
-            "ai_ml_roles": jobs.get("ai_ml_roles", 0),
-            "engineering_roles": jobs.get("engineering_roles", 0),
-        }
+    tech_stack = _extract_tech_stack(record)
+    ai_inputs = _derive_ai_maturity_inputs(
+        record=record,
+        jobs=jobs,
+        leadership_sources=leadership_sources or [],
+        leadership_signal=leadership_signal,
+        tech_stack=tech_stack,
     )
 
-    tech_stack = _extract_tech_stack(record)
+    ai_signal = ai_maturity.score_ai_maturity(ai_inputs)
 
     brief = {
         "company": {
@@ -116,6 +145,7 @@ def produce_hiring_signal_brief(
         },
         "ai_maturity": {
             **ai_signal,
+            "inputs": ai_inputs,
             "_confidence": _confidence_or_none(ai_signal.get("confidence")),
         },
         "tech_stack": {
@@ -137,6 +167,56 @@ def produce_hiring_signal_brief(
     # Persist in cache for pipeline reuse.
     set_cache("brief_hiring", normalize_company_name(company_name), brief)
     return brief
+
+
+def _derive_ai_maturity_inputs(
+    *,
+    record: dict[str, Any],
+    jobs: dict[str, Any],
+    leadership_sources: list[dict[str, Any]],
+    leadership_signal: dict[str, Any],
+    tech_stack: dict[str, Any],
+) -> dict[str, Any]:
+    narrative_text = " ".join(
+        part
+        for part in (
+            _flatten_text(record.get("about")),
+            _flatten_text(record.get("full_description")),
+            _flatten_text(record.get("news")),
+            _flatten_text(record.get("overview_highlights")),
+            _flatten_text(record.get("people_highlights")),
+            _flatten_text(record.get("leadership_hire")),
+        )
+        if part
+    )
+    leadership_text = " ".join(
+        _flatten_text(item.get("text"))
+        for item in leadership_sources
+        if isinstance(item, dict)
+    )
+    combined_text = f"{narrative_text} {leadership_text}".strip()
+
+    technologies = tech_stack.get("technologies") if isinstance(tech_stack.get("technologies"), list) else []
+    technologies_cf = [str(item).casefold() for item in technologies if isinstance(item, str)]
+    social_links = _parse_jsonish(record.get("social_media_links"))
+    github_activity = _count_ai_github_links(social_links)
+
+    ai_leadership = _contains_any(combined_text, AI_LEADERSHIP_KEYWORDS) or _contains_any(
+        str(leadership_signal.get("role") or ""), ("head_of_ai", "vp_data", "chief_scientist")
+    )
+    exec_commentary = _contains_any(combined_text, EXEC_AI_KEYWORDS) and _contains_any(combined_text, EXEC_ROLE_KEYWORDS)
+    modern_ml_stack = any(any(keyword in tech for keyword in MODERN_ML_STACK_KEYWORDS) for tech in technologies_cf)
+    strategic_ai_communications = _contains_any(combined_text, EXEC_AI_KEYWORDS)
+
+    return {
+        "ai_ml_roles": jobs.get("ai_ml_roles", 0),
+        "engineering_roles": jobs.get("engineering_roles", 0),
+        "has_named_ai_leadership": ai_leadership,
+        "github_ai_activity": github_activity,
+        "exec_ai_commentary": exec_commentary,
+        "modern_ml_stack": modern_ml_stack,
+        "strategic_ai_communications": strategic_ai_communications,
+    }
 
 
 def write_hiring_signal_brief_file(
@@ -215,6 +295,39 @@ def _extract_tech_stack(record: dict[str, Any]) -> dict[str, Any]:
 
     confidence = "high" if uniq else "none"
     return {"technologies": uniq or None, "count": len(uniq), "confidence": confidence}
+
+
+def _flatten_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return " ".join(_flatten_text(item) for item in value)
+    if isinstance(value, dict):
+        return " ".join(_flatten_text(item) for item in value.values())
+    return str(value)
+
+
+def _contains_any(text: str, keywords: tuple[str, ...]) -> bool:
+    haystack = text.casefold()
+    return any(keyword in haystack for keyword in keywords)
+
+
+def _count_ai_github_links(value: Any) -> int:
+    parsed = _parse_jsonish(value)
+    if not isinstance(parsed, list):
+        return 0
+    score = 0
+    for item in parsed:
+        text = _flatten_text(item).casefold()
+        if "github" not in text:
+            continue
+        if any(keyword in text for keyword in EXEC_AI_KEYWORDS + ("model", "inference", "ml", "ai")):
+            score += 1
+        else:
+            score += 1
+    return score
 
 
 def _parse_jsonish(value: Any) -> Any:

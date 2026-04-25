@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import statistics
 import subprocess
 import sys
@@ -366,8 +367,24 @@ def _ensure_llm_api_key_present() -> None:
     )
 
 
+def _tau2_command_prefix(tau2_repo: Path) -> list[str]:
+    uv_bin = shutil.which("uv")
+    if uv_bin:
+        return [uv_bin, "run", "tau2"]
+
+    local_tau2 = tau2_repo / ".venv" / "bin" / "tau2"
+    if local_tau2.exists():
+        return [str(local_tau2)]
+
+    tau2_bin = shutil.which("tau2")
+    if tau2_bin:
+        return [tau2_bin]
+
+    return ["uv", "run", "tau2"]
+
+
 def _maybe_convert_results_to_dir(tau2_repo: Path, run_dir: Path, env: dict[str, str]) -> None:
-    cmd = ["uv", "run", "tau2", "convert-results", str(run_dir), "--to", "dir", "--no-backup"]
+    cmd = _tau2_command_prefix(tau2_repo) + ["convert-results", str(run_dir), "--to", "dir", "--no-backup"]
     _run_subprocess(cmd, cwd=tau2_repo, env=env)
 
 
@@ -501,7 +518,7 @@ def _append_score_log(path: Path, entry: dict[str, Any]) -> None:
 def _langfuse_client_if_configured(*, require: bool) -> Any:
     public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
     secret_key = os.getenv("LANGFUSE_SECRET_KEY")
-    base_url = os.getenv("LANGFUSE_BASE_URL")
+    host = os.getenv("LANGFUSE_HOST") or os.getenv("LANGFUSE_BASE_URL")
     environment = os.getenv("LANGFUSE_TRACING_ENVIRONMENT") or "development"
 
     if not public_key or not secret_key:
@@ -520,7 +537,7 @@ def _langfuse_client_if_configured(*, require: bool) -> Any:
         return Langfuse(
             public_key=public_key,
             secret_key=secret_key,
-            base_url=base_url,
+            host=host,
             environment=environment,
         )
     except Exception as exc:
@@ -695,6 +712,7 @@ def run_tau2_eval(
     env: dict[str, str],
 ) -> Path:
     cmd = _build_tau2_run_cmd(
+        tau2_repo,
         domain=domain,
         agent_llm=agent_llm,
         user_llm=user_llm,
@@ -718,6 +736,7 @@ def run_tau2_eval(
 
 
 def _build_tau2_run_cmd(
+    tau2_repo: Path,
     *,
     domain: str,
     agent_llm: str,
@@ -729,10 +748,7 @@ def _build_tau2_run_cmd(
     save_to: str,
     log_level: str,
 ) -> list[str]:
-    return [
-        "uv",
-        "run",
-        "tau2",
+    return _tau2_command_prefix(tau2_repo) + [
         "run",
         "--domain",
         domain,
@@ -950,6 +966,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     try:
         if args.smoke_first:
             smoke_cmd = _build_tau2_run_cmd(
+                tau2_repo,
                 domain=args.partition,
                 agent_llm=args.agent_llm,
                 user_llm=args.user_llm,
@@ -1008,6 +1025,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             )
 
         baseline_cmd = _build_tau2_run_cmd(
+            tau2_repo,
             domain=args.partition,
             agent_llm=args.agent_llm,
             user_llm=args.user_llm,

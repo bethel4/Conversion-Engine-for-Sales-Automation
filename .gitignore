@@ -23,6 +23,17 @@ data/raw/layoffs/*
 !data/raw/layoffs/layoffs.csv
 data/cache.db
 data/processed/
+!data/processed/
+data/processed/*
+!data/processed/seed/
+data/processed/seed/*
+!data/processed/seed/icp_definition.md
+!data/processed/seed/style_guide.md
+!data/processed/seed/case_studies.md
+!data/processed/seed/sales_deck_notes.md
+!data/processed/seed/email_sequences/
+data/processed/seed/email_sequences/*
+!data/processed/seed/email_sequences/cold.md
 data/briefs/
 data/threads.db
 env/

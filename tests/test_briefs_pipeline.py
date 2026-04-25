@@ -29,10 +29,12 @@ class TestBriefsPipeline(unittest.TestCase):
                         "country_code": "US",
                         "num_employees": "11-50",
                         "industries": json.dumps([{"value": "B2B SaaS"}]),
-                        "builtwith_tech": json.dumps([{"name": "Kubernetes"}]),
+                        "builtwith_tech": json.dumps([{"name": "Kubernetes"}, {"name": "Databricks"}]),
                         "last_funding_date": "2026-03-09",
                         "last_funding_type": "Series B",
                         "last_funding_amount_usd": 14000000,
+                        "full_description": "Acme helps teams deploy AI copilots in production workflows.",
+                        "social_media_links": json.dumps(["https://github.com/acme-ai"]),
                     },
                     {
                         "id": "peer1",
@@ -78,6 +80,13 @@ class TestBriefsPipeline(unittest.TestCase):
             today=today,
             jobs_html=html,
             layoffs_dataset_path=self.layoffs_path,
+            leadership_sources=[
+                {
+                    "text": "Acme appoints Sarah Chen as Head of AI after the CEO said AI is strategic for the next phase.",
+                    "date": "2026-03-15",
+                    "source": "press-release",
+                }
+            ],
         )
         self.assertIn("company", brief)
         self.assertIn("_confidence", brief["company"])
@@ -86,6 +95,9 @@ class TestBriefsPipeline(unittest.TestCase):
         self.assertIn("_confidence", brief["layoffs"])
         self.assertIn("_confidence", brief["leadership_change"])
         self.assertEqual(brief["funding"]["funded"], True)
+        self.assertEqual(brief["ai_maturity"]["score"], 3)
+        self.assertTrue(brief["ai_maturity"]["inputs"]["has_named_ai_leadership"])
+        self.assertTrue(brief["ai_maturity"]["inputs"]["modern_ml_stack"])
 
         out = briefs.write_hiring_signal_brief_file(brief, out_dir=self.tmp / "briefs")
         self.assertTrue(out.exists())

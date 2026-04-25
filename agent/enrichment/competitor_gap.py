@@ -215,16 +215,16 @@ def _score_peer_ai(record: dict[str, Any]) -> dict[str, Any]:
         for k in ("artificial intelligence", "machine learning", "generative ai", "llm", "ai")
     )
     has_ai_tech = any(any(k in t for t in tech) for k in AI_TECH_KEYWORDS)
+    has_modern_stack = any(any(k in t for t in tech) for k in DATA_TECH_KEYWORDS + AI_TECH_KEYWORDS)
 
-    # Feed into the shared scorer via boolean slots.
     signals = {
         "ai_ml_roles": 0,
         "engineering_roles": 0,
-        "ai_product_on_site": bool(has_ai_industry),
-        "ai_case_studies": bool(has_ai_industry and has_ai_tech),
-        "github_ai_repos": 0,
-        "exec_llm_mentions": False,
-        "has_head_of_ai": False,
+        "has_named_ai_leadership": False,
+        "github_ai_activity": 0,
+        "exec_ai_commentary": bool(has_ai_industry),
+        "modern_ml_stack": bool(has_modern_stack),
+        "strategic_ai_communications": bool(has_ai_industry and has_ai_tech),
     }
     return ai_maturity.score_ai_maturity(signals)
 

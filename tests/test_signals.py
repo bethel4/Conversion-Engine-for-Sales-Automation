@@ -104,16 +104,16 @@ class TestSignals(unittest.TestCase):
             {
                 "ai_ml_roles": 5,
                 "engineering_roles": 12,
-                "has_head_of_ai": True,
-                "github_ai_repos": 0,
-                "exec_llm_mentions": True,
+                "has_named_ai_leadership": True,
+                "github_ai_activity": 0,
+                "exec_ai_commentary": True,
+                "modern_ml_stack": True,
             }
         )
         self.assertEqual(scored["score"], 3)
-        self.assertEqual(scored["confidence"], "medium")
-        self.assertEqual(scored["pitch_language_hint"], "hedge")
+        self.assertEqual(scored["confidence"], "high")
+        self.assertEqual(scored["pitch_language_hint"], "assert")
 
 
 if __name__ == "__main__":
     unittest.main()
-

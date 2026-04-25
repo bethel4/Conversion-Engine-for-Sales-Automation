@@ -9,111 +9,6 @@ import requests
 
 HUBSPOT_API_URL = "https://api.hubapi.com"
 
-ENRICHMENT_CONTACT_PROPERTY_SPECS: dict[str, dict[str, Any]] = {
-    "tenacious_company_size": {
-        "label": "Tenacious Company Size",
-        "type": "string",
-        "fieldType": "text",
-        "groupName": "contactinformation",
-    },
-    "tenacious_industry": {
-        "label": "Tenacious Industry",
-        "type": "string",
-        "fieldType": "text",
-        "groupName": "contactinformation",
-    },
-    "tenacious_funding_stage": {
-        "label": "Tenacious Funding Stage",
-        "type": "string",
-        "fieldType": "text",
-        "groupName": "contactinformation",
-    },
-    "tenacious_funding_amount": {
-        "label": "Tenacious Funding Amount",
-        "type": "number",
-        "fieldType": "number",
-        "groupName": "contactinformation",
-    },
-    "tenacious_funding_days_ago": {
-        "label": "Tenacious Funding Days Ago",
-        "type": "number",
-        "fieldType": "number",
-        "groupName": "contactinformation",
-    },
-    "tenacious_engineering_roles": {
-        "label": "Tenacious Engineering Roles",
-        "type": "number",
-        "fieldType": "number",
-        "groupName": "contactinformation",
-    },
-    "tenacious_job_velocity_60d": {
-        "label": "Tenacious Job Velocity 60d",
-        "type": "number",
-        "fieldType": "number",
-        "groupName": "contactinformation",
-    },
-    "tenacious_job_signal_confidence": {
-        "label": "Tenacious Job Signal Confidence",
-        "type": "string",
-        "fieldType": "text",
-        "groupName": "contactinformation",
-    },
-    "tenacious_layoff_detected": {
-        "label": "Tenacious Layoff Detected",
-        "type": "bool",
-        "fieldType": "booleancheckbox",
-        "groupName": "contactinformation",
-    },
-    "tenacious_layoff_days_ago": {
-        "label": "Tenacious Layoff Days Ago",
-        "type": "number",
-        "fieldType": "number",
-        "groupName": "contactinformation",
-    },
-    "tenacious_leadership_change": {
-        "label": "Tenacious Leadership Change",
-        "type": "bool",
-        "fieldType": "booleancheckbox",
-        "groupName": "contactinformation",
-    },
-    "tenacious_leadership_role": {
-        "label": "Tenacious Leadership Role",
-        "type": "string",
-        "fieldType": "text",
-        "groupName": "contactinformation",
-    },
-    "tenacious_ai_maturity_score": {
-        "label": "Tenacious AI Maturity Score",
-        "type": "number",
-        "fieldType": "number",
-        "groupName": "contactinformation",
-    },
-    "tenacious_ai_maturity_confidence": {
-        "label": "Tenacious AI Maturity Confidence",
-        "type": "string",
-        "fieldType": "text",
-        "groupName": "contactinformation",
-    },
-    "tenacious_icp_segment": {
-        "label": "Tenacious ICP Segment",
-        "type": "string",
-        "fieldType": "text",
-        "groupName": "contactinformation",
-    },
-    "tenacious_icp_confidence": {
-        "label": "Tenacious ICP Confidence",
-        "type": "number",
-        "fieldType": "number",
-        "groupName": "contactinformation",
-    },
-    "tenacious_enrichment_timestamp": {
-        "label": "Tenacious Enrichment Timestamp",
-        "type": "string",
-        "fieldType": "text",
-        "groupName": "contactinformation",
-    },
-}
-
 
 def _hubspot_api_key() -> str:
     api_key = os.getenv("HUBSPOT_API_KEY")
@@ -190,11 +85,32 @@ def _upsert_contact_by_email(email: str, properties: dict[str, Any]) -> dict[str
     )
 
 
-def build_enriched_contact_properties(
+def build_standard_contact_properties(
     *,
     email: str,
-    phone: str | None = None,
     company_name: str | None = None,
+    firstname: str | None = None,
+    lastname: str | None = None,
+    lifecyclestage: str | None = None,
+    hs_lead_status: str | None = None,
+) -> dict[str, Any]:
+    properties: dict[str, Any] = {
+        "email": email,
+        "company": _coalesce_text(company_name),
+    }
+    if firstname and firstname.strip():
+        properties["firstname"] = firstname.strip()
+    if lastname and lastname.strip():
+        properties["lastname"] = lastname.strip()
+    if lifecyclestage and lifecyclestage.strip():
+        properties["lifecyclestage"] = lifecyclestage.strip()
+    if hs_lead_status and hs_lead_status.strip():
+        properties["hs_lead_status"] = hs_lead_status.strip()
+    return properties
+
+
+def build_optional_enrichment_properties(
+    *,
     icp_segment: str,
     enrichment: dict[str, Any],
 ) -> dict[str, Any]:
@@ -217,13 +133,6 @@ def build_enriched_contact_properties(
     )
 
     return {
-        "email": email,
-        "phone": _coalesce_text(phone),
-        "company": _coalesce_text(company_name),
-        "icp_segment": _coalesce_text(icp_segment),
-        "pitch_angle": enrichment.get("pitch_angle"),
-        "signal_enrichment_json": json.dumps(enrichment, separators=(",", ":"), sort_keys=True),
-        "enrichment_timestamp": timestamp,
         "tenacious_company_size": _coalesce_text(
             enrichment.get("company_size"),
             company_signal.get("num_employees"),
@@ -260,15 +169,30 @@ def write_enriched_contact(
     icp_segment: str,
     enrichment: dict[str, Any],
 ) -> dict[str, Any]:
-    _ensure_enrichment_contact_properties()
-    properties = build_enriched_contact_properties(
+    properties = build_standard_contact_properties(
         email=email,
-        phone=phone,
         company_name=company_name,
-        icp_segment=icp_segment,
-        enrichment=enrichment,
+        lifecyclestage=os.getenv("HUBSPOT_LIFECYCLE_STAGE_ENRICHED", "salesqualifiedlead"),
+        hs_lead_status="OPEN",
     )
-    return _upsert_contact_by_email(email, properties)
+    if phone and phone.strip():
+        properties["phone"] = phone.strip()
+    result = _upsert_contact_by_email(email, properties)
+    contact_id = str(result.get("id") or "")
+    if contact_id:
+        optional_properties = build_optional_enrichment_properties(
+            icp_segment=icp_segment,
+            enrichment=enrichment,
+        )
+        try:
+            _request(
+                "PATCH",
+                f"/crm/v3/objects/contacts/{contact_id}",
+                json_body={"properties": optional_properties},
+            )
+        except RuntimeError:
+            pass
+    return result
 
 
 def write_booking_update(
@@ -411,32 +335,6 @@ def _ensure_contact(*, email: str | None, phone: str | None) -> dict[str, Any]:
     if existing is not None:
         return existing
     return _request("POST", "/crm/v3/objects/contacts", json_body={"properties": {"phone": phone}})
-
-
-def _ensure_enrichment_contact_properties() -> None:
-    for property_name, spec in ENRICHMENT_CONTACT_PROPERTY_SPECS.items():
-        if _contact_property_exists(property_name):
-            continue
-        payload = {
-            "name": property_name,
-            "label": spec["label"],
-            "type": spec["type"],
-            "fieldType": spec["fieldType"],
-            "groupName": spec["groupName"],
-            "description": "Tenacious enrichment property",
-        }
-        _request("POST", "/crm/v3/properties/contacts", json_body=payload)
-
-
-def _contact_property_exists(property_name: str) -> bool:
-    try:
-        _request("GET", f"/crm/v3/properties/contacts/{property_name}", json_body=None)
-        return True
-    except RuntimeError as exc:
-        message = str(exc)
-        if "404" in message:
-            return False
-        raise
 
 
 def _search_contact_by_phone(phone: str) -> dict[str, Any] | None:
@@ -582,6 +480,19 @@ def _format_note_body(
             lines.append(f"Confidence: {confidence}")
         if pitch_angle is not None:
             lines.append(f"Pitch angle: {pitch_angle}")
+    elif event_type == "enrichment_completed":
+        details = (
+            ("Firmographics", body_json.get("firmographics")),
+            ("Funding", body_json.get("funding")),
+            ("Job signals", body_json.get("job_signals")),
+            ("Layoffs", body_json.get("layoffs")),
+            ("Leadership", body_json.get("leadership")),
+            ("AI maturity", body_json.get("ai_maturity")),
+            ("ICP classification", body_json.get("icp_classification")),
+        )
+        for label, value in details:
+            lines.append(f"{label}:")
+            lines.append(_stringify_note_value(value))
 
     raw = {
         "event_type": event_type,
@@ -593,3 +504,11 @@ def _format_note_body(
     pretty_json = json.dumps(raw, ensure_ascii=False, indent=2, sort_keys=True)
     summary = "\n".join(lines)
     return f"<pre>{summary}\n\nData:\n{pretty_json}</pre>"[:7500]
+
+
+def _stringify_note_value(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    if isinstance(value, str):
+        return value.strip() or "n/a"
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)

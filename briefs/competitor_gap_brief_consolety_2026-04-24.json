@@ -1,0 +1,447 @@
+{
+  "company": {
+    "crunchbase_url": "https://www.crunchbase.com/organization/consolety",
+    "industries": [
+      "SEO"
+    ],
+    "name": "Consolety",
+    "num_employees": "1-10"
+  },
+  "gaps": [],
+  "meta": {
+    "dataset_path": "/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/data/raw/crunchbase/crunchbase-companies-information.csv",
+    "generated_at": "2026-04-24",
+    "method": "heuristic_local",
+    "peer_count": 6
+  },
+  "peers": [
+    {
+      "ai_maturity": {
+        "confidence": "low",
+        "evidence_count": 0,
+        "justification": {
+          "per_signal": {
+            "ai_case_studies": {
+              "evidence": {
+                "ai_case_studies": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_hiring": {
+              "evidence": {
+                "ai_ml_roles": 0,
+                "engineering_roles": 0,
+                "ratio": 0.0
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_leadership": {
+              "evidence": {
+                "has_head_of_ai": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_product": {
+              "evidence": {
+                "ai_product_on_site": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "exec_mentions": {
+              "evidence": {
+                "exec_llm_mentions": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "github_ai_activity": {
+              "evidence": {
+                "github_ai_repos": 0
+              },
+              "points": 0.0,
+              "weight": "none"
+            }
+          },
+          "raw_points": 0.0
+        },
+        "pitch_language_hint": "ask",
+        "score": 0
+      },
+      "features": {
+        "ai_tech_stack": false,
+        "data_stack": false,
+        "modern_cloud": false
+      },
+      "industries": [
+        "Advertising",
+        "Marketing",
+        "SEO"
+      ],
+      "name": "WebPerf IO",
+      "num_employees": "1-10",
+      "url": "https://www.crunchbase.com/organization/webperf-io"
+    },
+    {
+      "ai_maturity": {
+        "confidence": "low",
+        "evidence_count": 0,
+        "justification": {
+          "per_signal": {
+            "ai_case_studies": {
+              "evidence": {
+                "ai_case_studies": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_hiring": {
+              "evidence": {
+                "ai_ml_roles": 0,
+                "engineering_roles": 0,
+                "ratio": 0.0
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_leadership": {
+              "evidence": {
+                "has_head_of_ai": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_product": {
+              "evidence": {
+                "ai_product_on_site": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "exec_mentions": {
+              "evidence": {
+                "exec_llm_mentions": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "github_ai_activity": {
+              "evidence": {
+                "github_ai_repos": 0
+              },
+              "points": 0.0,
+              "weight": "none"
+            }
+          },
+          "raw_points": 0.0
+        },
+        "pitch_language_hint": "ask",
+        "score": 0
+      },
+      "features": {
+        "ai_tech_stack": false,
+        "data_stack": false,
+        "modern_cloud": false
+      },
+      "industries": [
+        "Information Technology",
+        "Marketing",
+        "SEO",
+        "Web Design",
+        "Web Development"
+      ],
+      "name": "CCDM",
+      "num_employees": "1-10",
+      "url": "https://www.crunchbase.com/organization/ccdm-b60e"
+    },
+    {
+      "ai_maturity": {
+        "confidence": "low",
+        "evidence_count": 0,
+        "justification": {
+          "per_signal": {
+            "ai_case_studies": {
+              "evidence": {
+                "ai_case_studies": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_hiring": {
+              "evidence": {
+                "ai_ml_roles": 0,
+                "engineering_roles": 0,
+                "ratio": 0.0
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_leadership": {
+              "evidence": {
+                "has_head_of_ai": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_product": {
+              "evidence": {
+                "ai_product_on_site": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "exec_mentions": {
+              "evidence": {
+                "exec_llm_mentions": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "github_ai_activity": {
+              "evidence": {
+                "github_ai_repos": 0
+              },
+              "points": 0.0,
+              "weight": "none"
+            }
+          },
+          "raw_points": 0.0
+        },
+        "pitch_language_hint": "ask",
+        "score": 0
+      },
+      "features": {
+        "ai_tech_stack": false,
+        "data_stack": false,
+        "modern_cloud": false
+      },
+      "industries": [
+        "Internet",
+        "SEO",
+        "Web Design",
+        "Web Development"
+      ],
+      "name": "Untriel",
+      "num_employees": "1-10",
+      "url": "https://www.crunchbase.com/organization/untriel"
+    },
+    {
+      "ai_maturity": {
+        "confidence": "low",
+        "evidence_count": 0,
+        "justification": {
+          "per_signal": {
+            "ai_case_studies": {
+              "evidence": {
+                "ai_case_studies": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_hiring": {
+              "evidence": {
+                "ai_ml_roles": 0,
+                "engineering_roles": 0,
+                "ratio": 0.0
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_leadership": {
+              "evidence": {
+                "has_head_of_ai": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_product": {
+              "evidence": {
+                "ai_product_on_site": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "exec_mentions": {
+              "evidence": {
+                "exec_llm_mentions": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "github_ai_activity": {
+              "evidence": {
+                "github_ai_repos": 0
+              },
+              "points": 0.0,
+              "weight": "none"
+            }
+          },
+          "raw_points": 0.0
+        },
+        "pitch_language_hint": "ask",
+        "score": 0
+      },
+      "features": {
+        "ai_tech_stack": false,
+        "data_stack": false,
+        "modern_cloud": false
+      },
+      "industries": [
+        "Advertising",
+        "Digital Marketing",
+        "SEO",
+        "Social Media"
+      ],
+      "name": "Driver Media Worldwide",
+      "num_employees": "1-10",
+      "url": "https://www.crunchbase.com/organization/driver-media-worldwide"
+    },
+    {
+      "ai_maturity": {
+        "confidence": "low",
+        "evidence_count": 0,
+        "justification": {
+          "per_signal": {
+            "ai_case_studies": {
+              "evidence": {
+                "ai_case_studies": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_hiring": {
+              "evidence": {
+                "ai_ml_roles": 0,
+                "engineering_roles": 0,
+                "ratio": 0.0
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_leadership": {
+              "evidence": {
+                "has_head_of_ai": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_product": {
+              "evidence": {
+                "ai_product_on_site": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "exec_mentions": {
+              "evidence": {
+                "exec_llm_mentions": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "github_ai_activity": {
+              "evidence": {
+                "github_ai_repos": 0
+              },
+              "points": 0.0,
+              "weight": "none"
+            }
+          },
+          "raw_points": 0.0
+        },
+        "pitch_language_hint": "ask",
+        "score": 0
+      },
+      "features": {
+        "ai_tech_stack": false,
+        "data_stack": false,
+        "modern_cloud": false
+      },
+      "industries": [
+        "Digital Marketing",
+        "Graphic Design",
+        "SEO",
+        "Social Media Marketing",
+        "Web Design"
+      ],
+      "name": "Eagle Eye Media",
+      "num_employees": "1-10",
+      "url": "https://www.crunchbase.com/organization/eagle-eye-media"
+    },
+    {
+      "ai_maturity": {
+        "confidence": "low",
+        "evidence_count": 0,
+        "justification": {
+          "per_signal": {
+            "ai_case_studies": {
+              "evidence": {
+                "ai_case_studies": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_hiring": {
+              "evidence": {
+                "ai_ml_roles": 0,
+                "engineering_roles": 0,
+                "ratio": 0.0
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_leadership": {
+              "evidence": {
+                "has_head_of_ai": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "ai_product": {
+              "evidence": {
+                "ai_product_on_site": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "exec_mentions": {
+              "evidence": {
+                "exec_llm_mentions": false
+              },
+              "points": 0.0,
+              "weight": "none"
+            },
+            "github_ai_activity": {
+              "evidence": {
+                "github_ai_repos": 0
+              },
+              "points": 0.0,
+              "weight": "none"
+            }
+          },
+          "raw_points": 0.0
+        },
+        "pitch_language_hint": "ask",
+        "score": 0
+      },
+      "features": {
+        "ai_tech_stack": false,
+        "data_stack": false,
+        "modern_cloud": false
+      },
+      "industries": [
+        "Lead Management",
+        "SEO",
+        "Web Design",
+        "Web Hosting"
+      ],
+      "name": "MLS Navigator",
+      "num_employees": "1-10",
+      "url": "https://www.crunchbase.com/organization/mls-navigator"
+    }
+  ],
+  "prospect_percentile": 0
+}

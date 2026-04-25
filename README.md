@@ -82,6 +82,7 @@ For Render:
 - UI should set `AGENT_API_URL` to your backend URL (see `ui/README.md`).
 - `resend` is the default outbound email provider. Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for the normal path.
 - Set `EMAIL_PROVIDER=mailersend` with `MAILERSEND_API_KEY` and `MAILERSEND_FROM_EMAIL` if you want outbound delivery and inbound reply routing through MailerSend instead.
+- Set `LIVE_OUTBOUND=false` to activate the kill-switch and block live outbound email, booking-link sends, and SMS.
 
 ### 2) Generate the hiring signal brief (core artifact)
 
@@ -119,6 +120,18 @@ python3 -m agent.enrichment.competitor_gap --company "Consolety" --out-dir data/
 ```bash
 python3 -m agent.enrichment.icp --brief data/briefs/hiring_signal_brief_consolety_2026-04-23.json
 ```
+
+### 5) Generate the market-space map and validation report
+
+```bash
+python3 -m agent.market_map
+```
+
+Outputs:
+- `data/processed/market_map/market_map_report.json`
+- [methodology.md](/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/methodology.md)
+- [memo_page_2.md](/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/memo_page_2.md)
+- [data_handling_policy.md](/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/data_handling_policy.md)
 
 ## Enrichment signals (what the brief contains)
 
@@ -187,6 +200,26 @@ All enrichment modules use the cache so repeat runs don’t re-enrich the same c
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
+
+## Outbound Kill-Switch
+
+The measurable pause control is `LIVE_OUTBOUND`.
+
+- `LIVE_OUTBOUND=true`: live outbound is allowed.
+- `LIVE_OUTBOUND=false`: the backend returns `403` for `/emails/send`, `/prospects/{id}/send-outreach`, booking-link sends, and `/sms/send`.
+
+Pause the system when **any** of these conditions is met:
+
+1. `wrong_signal_rate_7d > 4%` and `confirmed_wrong_signal_complaints_7d >= 3`, measured from CTO/VP Eng complaint tracking after manual review.
+2. `research_reply_rate_14d < 3%` for `2` consecutive full weeks, measured from delivered outbound plus reply webhooks.
+3. `brand_complaint_named_prospect >= 1`, where a named CTO or VP Engineering prospect explicitly flags a factual error or brand-damaging claim.
+
+Rollback procedure:
+
+1. Set `LIVE_OUTBOUND=false`.
+2. Pause the active campaign in the outbound provider.
+3. Review the last `50` briefs plus the previous `14` days of complaint and reply logs.
+4. Fix the signal logic, rerun tests, and only re-enable outbound after manual sign-off.
 
 ## Service API (SMS)
 
