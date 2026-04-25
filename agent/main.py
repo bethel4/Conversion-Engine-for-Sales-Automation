@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime, timezone
+from email.utils import parseaddr
 from pathlib import Path
 from urllib.parse import parse_qs
 from typing import Any, Callable, Literal, Optional
@@ -13,12 +14,14 @@ from pydantic import BaseModel, Field
 from agent.enrichment.briefs import produce_hiring_signal_brief
 from agent.enrichment.pipeline import run_hiring_signal_enrichment
 from agent.enrichment.icp import classify_icp
+from agent.email_generator import generate_outreach_email
 from agent.hubspot_mcp import (
     log_event,
     set_lifecycle_stage,
     write_booking_update,
     write_enriched_contact,
 )
+from agent.outbound_policy import live_outbound_config, require_live_outbound
 from agent.prospect_store import append_activity, get_prospect, load_prospects, update_prospect
 from agent.prospect_flow import build_booking_link_followup_text, build_event_context, build_thread_id
 
@@ -58,12 +61,17 @@ if _cors_origins:
     )
 
 RESEND_API_URL = "https://api.resend.com/emails"
+RESEND_RECEIVING_API_URL = "https://api.resend.com/emails/receiving"
 MAILERSEND_API_URL = "https://api.mailersend.com/v1/email"
 AFRICASTALKING_SMS_API_URL = "https://api.africastalking.com/version1/messaging"
 CALCOM_API_URL = "https://api.cal.com/v1/bookings"
-EmailEventType = Literal["reply", "bounce"]
+EmailEventType = Literal["reply", "bounce", "delivery"]
 SMSEventType = Literal["reply"]
 CalendarEventType = Literal["booking_confirmed"]
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def _hubspot_api_key() -> str:
@@ -82,6 +90,23 @@ def _calcom_api_key() -> str:
 
 def _calcom_api_url() -> str:
     return os.getenv("CALCOM_API_URL", CALCOM_API_URL)
+
+
+def _fetch_calcom_booking(booking_id: str) -> dict[str, Any] | None:
+    """Fetch detailed booking information from Cal.com API"""
+    try:
+        headers = {
+            "Authorization": f"Bearer {_calcom_api_key()}",
+            "Content-Type": "application/json",
+        }
+        # Try to get booking details - this may need adjustment based on Cal.com API
+        url = f"{_calcom_api_url()}/{booking_id}"
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except requests.RequestException:
+        return None
 
 
 def _calcom_booking_link() -> str:
@@ -229,6 +254,8 @@ class EmailEvent(BaseModel):
     text: Optional[str] = None
     html: Optional[str] = None
     to: list[str] = Field(default_factory=list)
+    received_at: Optional[str] = None
+    provider_event_type: Optional[str] = None
     raw_payload: dict[str, Any]
 
 
@@ -280,7 +307,7 @@ class CalendarEvent(BaseModel):
 class ManualReplyRequest(BaseModel):
     message_id: Optional[str] = None
     subject: Optional[str] = None
-    text: str = Field(..., min_length=1)
+    text: Optional[str] = None
 
 
 class SendBookingLinkRequest(BaseModel):
@@ -292,6 +319,17 @@ class SyncBookingRequest(BaseModel):
     booking_status: str = Field("confirmed", min_length=1)
     start_time: Optional[str] = None
     title: Optional[str] = None
+    attendee_name: Optional[str] = None
+    attendee_email: Optional[str] = None
+    timezone: Optional[str] = None
+
+
+class GenerateEmailRequest(BaseModel):
+    approval_reset: bool = True
+
+
+class ApproveEmailRequest(BaseModel):
+    approved: bool = True
 
 
 EmailEventHandler = Callable[[EmailEvent], None]
@@ -350,6 +388,7 @@ def emit_calendar_event(event: CalendarEvent) -> None:
 
 
 def send_email(payload: EmailSendRequest) -> dict[str, Any]:
+    require_live_outbound("email_send")
     if not payload.text and not payload.html:
         raise RuntimeError("Email payload must include text or html content")
     provider = _email_provider()
@@ -435,6 +474,7 @@ def _response_provider_name() -> str:
 
 
 def send_sms_to_warm_lead(payload: SMSSendRequest) -> dict[str, Any]:
+    require_live_outbound("sms_send")
     # SMS is intentionally gated behind a prior email reply so it is never used for cold outreach.
     if not payload.prior_email_reply_received:
         raise PermissionError("SMS is only allowed for warm leads after a prior email reply")
@@ -523,17 +563,37 @@ def enrich_and_write_contact(payload: ProspectEnrichmentRequest) -> dict[str, An
         )
     except Exception as exc:  # pragma: no cover
         print("IDENTITY CACHE ERROR:", str(exc))
+    note_result = None
     try:
-        log_event(
+        note_result = log_event(
             email=payload.email,
             phone=payload.phone,
             event_type="enrichment_completed",
-            data=build_event_context(
-                prospect_email=payload.email,
-                identity={"company_name": payload.company_name, "thread_id": thread_id},
-                extra={"icp": icp, "brief_meta": brief.get("meta")},
-            ),
+            data={
+                "company_name": payload.company_name,
+                "email": payload.email,
+                "thread_id": thread_id,
+                "enrichment_timestamp": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "firmographics": brief.get("company"),
+                "funding": brief.get("funding"),
+                "job_signals": brief.get("jobs"),
+                "layoffs": brief.get("layoffs"),
+                "leadership": brief.get("leadership_change"),
+                "ai_maturity": brief.get("ai_maturity"),
+                "icp_classification": {
+                    "segment": icp["segment"],
+                    "confidence": icp["confidence"],
+                    "pitch_angle": icp["pitch_angle"],
+                    "scores": icp["scores"],
+                    "reasoning": icp["reasoning"],
+                    "disqualifiers": icp["disqualifiers"],
+                },
+            },
         )
+    except Exception as exc:  # pragma: no cover
+        print("HUBSPOT EVENT LOGGING ERROR (enrichment_completed):", str(exc))
+        raise RuntimeError(f"HubSpot enrichment note creation failed: {exc}") from exc
+    try:
         log_event(
             email=payload.email,
             phone=payload.phone,
@@ -549,8 +609,8 @@ def enrich_and_write_contact(payload: ProspectEnrichmentRequest) -> dict[str, An
             ),
         )
     except Exception as exc:  # pragma: no cover
-        print("HUBSPOT EVENT LOGGING ERROR (enrichment/qualified):", str(exc))
-    return {"hubspot": hubspot, "enrichment": enrichment, "thread_id": thread_id}
+        print("HUBSPOT EVENT LOGGING ERROR (qualification_complete):", str(exc))
+    return {"hubspot": hubspot, "enrichment": enrichment, "thread_id": thread_id, "note": note_result}
 
 
 def _store_enrichment_result(
@@ -605,6 +665,68 @@ def _lookup_identity(email: str) -> dict[str, Any] | None:
     return identity if isinstance(identity, dict) else None
 
 
+def classify_reply_intent(text: str) -> dict[str, Any]:
+    normalized = (text or "").strip().casefold()
+    if not normalized:
+        return {"label": "unclear", "confidence": 0.3, "reason": "empty reply body"}
+
+    not_interested_markers = ("not interested", "stop", "unsubscribe", "remove me", "no thanks", "don't contact", "do not contact")
+    interested_markers = ("interested", "sounds good", "let's talk", "lets talk", "book", "call", "meeting", "demo", "chat")
+    info_markers = ("send", "share", "brief", "details", "more info", "more information", "pricing", "case study", "deck")
+
+    if any(marker in normalized for marker in not_interested_markers):
+        return {"label": "not_interested", "confidence": 0.95, "reason": "explicit negative intent marker"}
+    if any(marker in normalized for marker in interested_markers):
+        return {"label": "interested", "confidence": 0.85, "reason": "positive meeting or interest marker"}
+    if any(marker in normalized for marker in info_markers) or "?" in normalized:
+        return {"label": "asks_for_info", "confidence": 0.75, "reason": "information request marker"}
+    return {"label": "unclear", "confidence": 0.45, "reason": "no strong intent marker detected"}
+
+
+def build_reply_next_action(
+    *,
+    intent: dict[str, Any],
+    event: EmailEvent,
+    identity: dict[str, Any] | None,
+    qualification_result: dict[str, Any] | None,
+) -> dict[str, Any]:
+    label = str(intent.get("label") or "unclear")
+    company_name = str((identity or {}).get("company_name") or "")
+    qualification = qualification_result.get("enrichment") if isinstance(qualification_result, dict) else {}
+    segment = qualification.get("segment") if isinstance(qualification, dict) else None
+
+    if label == "interested":
+        return {
+            "type": "booking_link",
+            "status": "recommended",
+            "reason": "Prospect signaled active interest.",
+            "draft": build_booking_link_followup_text(str(segment or "abstain"), _calcom_booking_link()) if os.getenv("CALCOM_BOOKING_LINK") else None,
+        }
+    if label == "asks_for_info":
+        return {
+            "type": "brief_response",
+            "status": "recommended",
+            "reason": "Prospect asked for more context.",
+            "draft": (
+                f"Thanks for the reply. We pulled the brief based on public signals around {company_name or 'your team'} "
+                "and can send the key findings before we book time."
+            ),
+        }
+    if label == "not_interested":
+        return {
+            "type": "close_lost",
+            "status": "applied",
+            "reason": "Prospect explicitly declined.",
+            "draft": None,
+        }
+    return {
+        "type": "manual_review",
+        "status": "required",
+        "reason": "Intent is unclear and needs human review.",
+        "draft": None,
+    }
+
+
 def _process_reply_event(event: EmailEvent) -> dict[str, Any]:
     emit_email_event(event)
     identity = _lookup_identity(event.sender)
@@ -637,6 +759,8 @@ def _process_reply_event(event: EmailEvent) -> dict[str, Any]:
                 leadership_sources=identity.get("leadership_sources") or [],
             )
         )
+    intent = classify_reply_intent(event.text or event.html or "")
+    next_action = build_reply_next_action(intent=intent, event=event, identity=identity, qualification_result=qualification_result)
 
     updated = update_prospect(
         email=event.sender,
@@ -644,9 +768,29 @@ def _process_reply_event(event: EmailEvent) -> dict[str, Any]:
             "last_reply_message_id": event.message_id,
             "last_reply_subject": event.subject,
             "last_reply_text": event.text,
+            "last_reply_html": event.html,
+            "last_reply_to": event.to,
+            "last_reply_received_at": event.received_at,
+            "last_reply_source": "webhook",
+            "reply_intent": intent["label"],
+            "reply_intent_confidence": intent["confidence"],
+            "reply_intent_reason": intent["reason"],
+            "reply_next_action": next_action,
             "lifecycle_stage": "Reply received",
         },
     )
+    if intent["label"] == "not_interested":
+        try:
+            set_lifecycle_stage(
+                email=event.sender,
+                stage=os.getenv("HUBSPOT_STAGE_CLOSED_LOST", "other"),
+            )
+        except Exception as exc:  # pragma: no cover
+            print("HUBSPOT LIFECYCLE ERROR (closed_lost):", str(exc))
+        update_prospect(
+            email=event.sender,
+            patch={"lifecycle_stage": "Closed lost"},
+        )
     if qualification_result:
         enrichment = qualification_result.get("enrichment")
         if isinstance(enrichment, dict):
@@ -667,13 +811,15 @@ def _process_reply_event(event: EmailEvent) -> dict[str, Any]:
         activity={
             "type": "email_reply_received",
             "title": "Reply processed",
-            "description": event.text or "Inbound reply received.",
+            "description": event.text or event.html or "Inbound reply received.",
         },
     )
     return {
         "status": "accepted",
         "event_type": event.event_type,
         "message_id": event.message_id,
+        "reply_intent": intent,
+        "next_action": next_action,
         "qualification": qualification_result.get("enrichment") if isinstance(qualification_result, dict) else None,
     }
 
@@ -839,40 +985,104 @@ def _extract_webhook_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _extract_email_address(value: Any) -> str | None:
+    if isinstance(value, dict):
+        value = value.get("email") or value.get("raw") or value.get("address")
+    if not isinstance(value, str):
+        return None
+    _, address = parseaddr(value)
+    normalized = (address or value).strip()
+    return normalized or None
+
+
+def _extract_email_addresses(values: Any) -> list[str]:
+    if isinstance(values, dict):
+        nested = values.get("data")
+        if isinstance(nested, list):
+            values = nested
+        else:
+            values = values.get("to") or values.get("cc") or values.get("bcc") or []
+    if isinstance(values, str):
+        values = [values]
+    if not isinstance(values, list):
+        return []
+    out: list[str] = []
+    for item in values:
+        email = _extract_email_address(item)
+        if email:
+            out.append(email)
+    return out
+
+
+def _normalize_email_body(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
+
+
+def _resend_headers() -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {_resend_api_key()}",
+        "Content-Type": "application/json",
+    }
+
+
+def _retrieve_resend_received_email(email_id: str) -> dict[str, Any]:
+    try:
+        response = requests.get(
+            f"{RESEND_RECEIVING_API_URL}/{email_id}",
+            headers=_resend_headers(),
+            timeout=20,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Resend receiving fetch failed: {exc}") from exc
+    if not response.ok:
+        raise RuntimeError(f"Resend receiving error {response.status_code}: {response.text}")
+    try:
+        result = response.json()
+    except ValueError:
+        result = {}
+    if not isinstance(result, dict):
+        return {}
+    data = result.get("data")
+    if isinstance(data, dict):
+        return data
+    return result
+
+
+def _resolve_resend_reply_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    event_type = str(payload.get("type") or payload.get("event") or "").lower()
+    data = _extract_webhook_payload(payload)
+    if event_type != "email.received":
+        return data
+
+    has_body = bool(_normalize_email_body(data.get("text")) or _normalize_email_body(data.get("text_body")) or _normalize_email_body(data.get("html")) or _normalize_email_body(data.get("html_body")))
+    email_id = data.get("email_id") or data.get("id")
+    if has_body or not email_id:
+        return data
+
+    received = _retrieve_resend_received_email(str(email_id))
+    merged = dict(data)
+    merged.update(received)
+    merged.setdefault("email_id", email_id)
+    return merged
+
+
 def _parse_email_event(payload: dict[str, Any]) -> EmailEvent:
     event_type = payload.get("type") or payload.get("event")
     if not isinstance(event_type, str):
         raise ValueError("Webhook payload is missing event type")
 
     normalized_type = event_type.lower()
-    data = _extract_webhook_payload(payload)
+    data = _resolve_resend_reply_payload(payload) if normalized_type == "email.received" else _extract_webhook_payload(payload)
 
     if "reply" in normalized_type or "received" in normalized_type or "inbound" in normalized_type:
-        message_id = data.get("email_id") or data.get("id") or data.get("message_id")
-        sender = data.get("from") or data.get("sender")
-        if isinstance(sender, dict):
-            sender = sender.get("email") or sender.get("raw")
-        recipients = data.get("to") or []
-        if isinstance(recipients, dict):
-            nested = recipients.get("data")
-            if isinstance(nested, list):
-                recipients = [
-                    item.get("email") if isinstance(item, dict) else item
-                    for item in nested
-                ]
-            else:
-                recipients = []
+        message_id = data.get("message_id") or data.get("email_id") or data.get("id")
+        sender = _extract_email_address(data.get("from") or data.get("sender"))
+        recipients = _extract_email_addresses(data.get("to") or data.get("recipients"))
         if isinstance(data.get("recipients"), dict):
-            to_block = data["recipients"].get("to")
-            if isinstance(to_block, dict):
-                nested = to_block.get("data")
-                if isinstance(nested, list):
-                    recipients = [
-                        item.get("email") if isinstance(item, dict) else item
-                        for item in nested
-                    ]
-        if isinstance(recipients, str):
-            recipients = [recipients]
+            recipients = recipients or _extract_email_addresses(data["recipients"].get("to"))
         if not message_id or not sender:
             raise ValueError("Reply webhook payload is missing message id or sender")
         return EmailEvent(
@@ -880,20 +1090,37 @@ def _parse_email_event(payload: dict[str, Any]) -> EmailEvent:
             message_id=str(message_id),
             sender=str(sender),
             subject=data.get("subject"),
-            text=data.get("text") or data.get("text_body"),
-            html=data.get("html") or data.get("html_body"),
+            text=_normalize_email_body(data.get("text") or data.get("text_body")),
+            html=_normalize_email_body(data.get("html") or data.get("html_body")),
             to=[str(item) for item in recipients],
+            received_at=str(data.get("created_at") or payload.get("created_at")) if (data.get("created_at") or payload.get("created_at")) else None,
+            provider_event_type=normalized_type,
+            raw_payload=payload,
+        )
+
+    if normalized_type in {"email.sent", "email.delivered", "email.delivery_delayed", "email.failed"}:
+        message_id = data.get("email_id") or data.get("id") or data.get("message_id")
+        sender = _extract_email_address(data.get("from")) or "provider"
+        recipients = _extract_email_addresses(data.get("to") or data.get("recipient"))
+        if not message_id:
+            raise ValueError("Delivery webhook payload is missing message id")
+        return EmailEvent(
+            event_type="delivery",
+            message_id=str(message_id),
+            sender=sender,
+            subject=data.get("subject"),
+            to=recipients,
+            received_at=str(data.get("created_at") or payload.get("created_at")) if (data.get("created_at") or payload.get("created_at")) else None,
+            provider_event_type=normalized_type,
             raw_payload=payload,
         )
 
     if "bounce" in normalized_type:
         message_id = data.get("email_id") or data.get("id") or data.get("message_id")
-        sender = data.get("from") or data.get("recipient")
+        sender = _extract_email_address(data.get("from") or data.get("recipient")) or str(data.get("recipient") or "")
         if not message_id or not sender:
             raise ValueError("Bounce webhook payload is missing message id or recipient")
-        recipients = data.get("to") or data.get("recipient") or []
-        if isinstance(recipients, str):
-            recipients = [recipients]
+        recipients = _extract_email_addresses(data.get("to") or data.get("recipient"))
         return EmailEvent(
             event_type="bounce",
             message_id=str(message_id),
@@ -901,6 +1128,8 @@ def _parse_email_event(payload: dict[str, Any]) -> EmailEvent:
             subject=data.get("subject"),
             text=data.get("reason"),
             to=[str(item) for item in recipients],
+            received_at=str(data.get("created_at") or payload.get("created_at")) if (data.get("created_at") or payload.get("created_at")) else None,
+            provider_event_type=normalized_type,
             raw_payload=payload,
         )
 
@@ -1009,6 +1238,16 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/config")
+def config():
+    return {
+        "status": "ok",
+        "agent_api_url": None,
+        "email_provider": _response_provider_name(),
+        **live_outbound_config(),
+    }
+
+
 @app.get("/prospects")
 def list_prospects_route():
     return {"prospects": load_prospects()}
@@ -1022,6 +1261,12 @@ async def webhook(request: Request):
         data = {"raw": (await request.body()).decode("utf-8", errors="replace")}
 
     print("WEBHOOK RECEIVED:", data)
+
+    event_type = data.get("type") or data.get("event")
+    if isinstance(event_type, str):
+        normalized = event_type.lower()
+        if normalized.startswith("email.") or "inbound" in normalized or "reply" in normalized:
+            return await _handle_email_webhook_payload(data)
 
     email = data.get("email")
     phone = data.get("from") or data.get("phone")
@@ -1080,6 +1325,8 @@ def send_email_route(payload: EmailSendRequest):
                 },
             )
         return {"status": "sent", "provider": _response_provider_name(), "message_id": message_id, "result": result}
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except RuntimeError as exc:
         message = str(exc)
         status_code = 500 if "not set" in message else 502
@@ -1238,19 +1485,106 @@ def send_outreach_route(prospect_id: str, payload: EmailSendRequest | None = Non
     return send_email_route(request)
 
 
+@app.post("/prospects/{prospect_id}/generate-email")
+def generate_email_route(prospect_id: str, payload: GenerateEmailRequest | None = None):
+    prospect = get_prospect(prospect_id=prospect_id)
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    hiring_brief = prospect.get("latest_hiring_brief") if isinstance(prospect.get("latest_hiring_brief"), dict) else None
+    competitor_gap_brief = (
+        prospect.get("latest_competitor_gap_brief") if isinstance(prospect.get("latest_competitor_gap_brief"), dict) else None
+    )
+    qualification = prospect.get("qualification") if isinstance(prospect.get("qualification"), dict) else None
+
+    if not hiring_brief or not competitor_gap_brief or not qualification:
+        raise HTTPException(
+            status_code=400,
+            detail="Generate Email requires enrichment and ICP classification first.",
+        )
+
+    generated = generate_outreach_email(
+        company_name=str(prospect["company"]),
+        prospect_name=str(prospect.get("prospect_name") or ""),
+        qualification=qualification,
+        hiring_brief=hiring_brief,
+        competitor_gap_brief=competitor_gap_brief,
+    )
+    request = payload or GenerateEmailRequest()
+    generation_metadata = {
+        "generated_at": _utc_now(),
+        "prospect_id": prospect_id,
+        "thread_id": str(prospect.get("thread_id") or build_thread_id(str(prospect["company"]))),
+        "icp_segment": str(qualification.get("segment") or "abstain"),
+        "icp_confidence": float(qualification.get("confidence") or 0.0),
+        "signals_used": list(generated.get("source", {}).get("signals_used") or []),
+        "generation_mode": str(generated.get("source", {}).get("generation_mode") or "fallback_generic"),
+    }
+    patch = {
+        "email_subject": generated["subject"],
+        "email_text": generated["text"],
+        "email_source": generated["source"],
+        "email_warning": generated.get("warning"),
+        "email_generated": True,
+        "email_generated_at": generation_metadata["generated_at"],
+        "email_generation_metadata": generation_metadata,
+    }
+    if request.approval_reset:
+        patch["email_approved"] = False
+    updated = update_prospect(prospect_id=prospect_id, patch=patch)
+    append_activity(
+        prospect_id=prospect_id,
+        activity={
+            "type": "email_generated",
+            "title": "Email generated",
+            "description": generated["subject"],
+        },
+    )
+    return {"status": "ok", "email": generated, "generation_metadata": generation_metadata, "prospect": updated}
+
+
+@app.post("/prospects/{prospect_id}/approve-email")
+def approve_email_route(prospect_id: str, payload: ApproveEmailRequest | None = None):
+    prospect = get_prospect(prospect_id=prospect_id)
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+
+    request = payload or ApproveEmailRequest()
+    approved = bool(request.approved)
+    updated = update_prospect(
+        prospect_id=prospect_id,
+        patch={"email_approved": approved},
+    )
+    append_activity(
+        prospect_id=prospect_id,
+        activity={
+            "type": "email_approved",
+            "title": "Email approved" if approved else "Email approval reset",
+            "description": "Outbound content approved for send." if approved else "Email requires approval before send.",
+        },
+    )
+    return {"status": "ok", "approved": approved, "prospect": updated}
+
+
 @app.post("/prospects/{prospect_id}/process-reply")
 def process_reply_route(prospect_id: str, payload: ManualReplyRequest):
     prospect = get_prospect(prospect_id=prospect_id)
     if not prospect:
         raise HTTPException(status_code=404, detail="Prospect not found")
+    reply_text = payload.text or prospect.get("last_reply_text")
+    if not isinstance(reply_text, str) or not reply_text.strip():
+        raise HTTPException(status_code=400, detail="Reply text is required unless a webhook reply is already stored for this prospect.")
     event = EmailEvent(
         event_type="reply",
-        message_id=payload.message_id or str(prospect.get("last_message_id") or f"reply_{prospect_id}"),
+        message_id=payload.message_id or str(prospect.get("last_reply_message_id") or prospect.get("last_message_id") or f"reply_{prospect_id}"),
         sender=str(prospect["email"]),
-        subject=payload.subject or str(prospect.get("email_subject") or ""),
-        text=payload.text,
-        to=[],
-        raw_payload={"source": "manual_process_reply"},
+        subject=payload.subject or str(prospect.get("last_reply_subject") or prospect.get("email_subject") or ""),
+        text=reply_text.strip(),
+        html=str(prospect.get("last_reply_html")) if prospect.get("last_reply_html") else None,
+        to=[str(item) for item in prospect.get("last_reply_to") or [] if isinstance(item, str)],
+        received_at=str(prospect.get("last_reply_received_at")) if prospect.get("last_reply_received_at") else None,
+        provider_event_type="manual.process_reply" if payload.text else "stored.webhook_reply",
+        raw_payload={"source": "manual_process_reply" if payload.text else "stored_webhook_reply"},
     )
     try:
         return _process_reply_event(event)
@@ -1279,18 +1613,51 @@ def sync_booking_route(prospect_id: str, payload: SyncBookingRequest):
     prospect = get_prospect(prospect_id=prospect_id)
     if not prospect:
         raise HTTPException(status_code=404, detail="Prospect not found")
+    
+    # Fetch detailed booking information from Cal.com
+    calcom_booking = _fetch_calcom_booking(payload.booking_id)
+    
+    # Create booking artifact with all required details
+    booking_artifact = {
+        "status": payload.booking_status.lower(),
+        "event_type": payload.title or f"Discovery call with Tenacious delivery lead",
+        "attendee_name": payload.attendee_name or str(prospect.get("prospect_name") or ""),
+        "attendee_email": payload.attendee_email or str(prospect["email"]),
+        "start_time": payload.start_time,
+        "timezone": payload.timezone or "UTC",
+        "calcom_booking_id": payload.booking_id,
+        "calcom_uid": calcom_booking.get("uid") if calcom_booking else None,
+        "synced_at": _utc_now(),
+        "raw_calcom_data": calcom_booking,
+    }
+    
+    # Store booking artifact in prospect record
+    updated_prospect = update_prospect(
+        prospect_id=prospect_id,
+        patch={
+            "booking_artifact": booking_artifact,
+            "booking_status": payload.booking_status.lower(),
+            "booking_start_time": payload.start_time,
+            "booking_title": payload.title,
+        }
+    )
+    
     event = CalendarEvent(
         event_type="booking_confirmed",
         booking_id=payload.booking_id,
         email=str(prospect["email"]),
         booking_status=payload.booking_status.lower(),
-        attendee_name=str(prospect.get("prospect_name") or ""),
+        attendee_name=booking_artifact["attendee_name"],
         start_time=payload.start_time,
         title=payload.title or f"{prospect['company']} discovery call",
-        raw_payload={"source": "manual_sync_booking"},
+        raw_payload={"source": "manual_sync_booking", "booking_artifact": booking_artifact},
     )
+    
     try:
-        return _process_calendar_event(event)
+        result = _process_calendar_event(event)
+        # Include booking artifact in response
+        result["booking_artifact"] = booking_artifact
+        return result
     except RuntimeError as exc:
         message = str(exc)
         status_code = 500 if "not set" in message else 502
@@ -1411,6 +1778,31 @@ async def _handle_email_webhook_payload(payload: dict[str, Any]):
         event = _parse_email_event(payload)
         if event.event_type == "reply":
             return _process_reply_event(event)
+        elif event.event_type == "delivery":
+            recipients = [recipient for recipient in event.to if recipient]
+            for recipient in recipients:
+                update_prospect(
+                    email=recipient,
+                    patch={
+                        "last_delivery_event": event.provider_event_type,
+                        "last_delivery_message_id": event.message_id,
+                        "last_delivery_at": event.received_at,
+                    },
+                )
+                append_activity(
+                    email=recipient,
+                    activity={
+                        "type": str(event.provider_event_type or "email_delivery"),
+                        "title": str(event.provider_event_type or "Email delivery").replace("email.", "Email ").replace("_", " ").title(),
+                        "description": event.subject or event.message_id,
+                    },
+                )
+            return {
+                "status": "accepted",
+                "event_type": event.provider_event_type or event.event_type,
+                "message_id": event.message_id,
+                "delivery_recipients": recipients,
+            }
         elif event.event_type == "bounce":
             emit_email_event(event)
             try:

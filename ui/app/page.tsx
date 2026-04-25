@@ -34,6 +34,31 @@ type QualificationSnapshot = {
   pitchAngle: string;
 } | null;
 
+type EmailSource = {
+  used_enrichment_data?: boolean;
+  used_icp_segment?: boolean;
+  used_ai_maturity_score?: boolean;
+  used_competitor_gap_brief?: boolean;
+  used_style_guide?: boolean;
+  used_email_sequences?: boolean;
+  used_case_studies?: boolean;
+  signals_used?: string[];
+  seed_files_loaded?: Record<string, string | null>;
+  fallback_reason?: string | null;
+  pitch_language_hint?: string | null;
+  generation_mode?: "signal_grounded" | "fallback_generic" | string | null;
+} | null;
+
+type EmailGenerationMetadata = {
+  generated_at?: string | null;
+  prospect_id?: string | null;
+  thread_id?: string | null;
+  icp_segment?: string | null;
+  icp_confidence?: number | null;
+  signals_used?: string[];
+  generation_mode?: "signal_grounded" | "fallback_generic" | string | null;
+} | null;
+
 type ProspectApiRecord = {
   id: string;
   prospect_name: string;
@@ -50,6 +75,24 @@ type ProspectApiRecord = {
     confidence?: number | null;
     pitch_angle?: string | null;
   } | null;
+  last_reply_message_id?: string | null;
+  last_reply_subject?: string | null;
+  last_reply_text?: string | null;
+  last_reply_html?: string | null;
+  last_reply_received_at?: string | null;
+  last_reply_source?: string | null;
+  reply_intent?: string | null;
+  reply_intent_confidence?: number | null;
+  reply_intent_reason?: string | null;
+  reply_next_action?: Record<string, any> | null;
+  last_delivery_event?: string | null;
+  last_delivery_at?: string | null;
+  email_source?: EmailSource;
+  email_warning?: string | null;
+  email_generated?: boolean | null;
+  email_generated_at?: string | null;
+  email_generation_metadata?: EmailGenerationMetadata;
+  email_approved?: boolean | null;
   email_subject?: string | null;
   email_text?: string | null;
   reply_text?: string | null;
@@ -65,6 +108,7 @@ type ProspectApiRecord = {
   booking_status?: string | null;
   booking_start_time?: string | null;
   booking_title?: string | null;
+  booking_artifact?: BookingArtifact | null;
   activity?: Array<{ type?: string; title?: string; description?: string; timestamp?: string | null }> | null;
 };
 
@@ -80,6 +124,24 @@ type ProspectSeed = {
   lifecycleStage: string;
   lastActivity: string | null;
   qualification: QualificationSnapshot;
+  lastReplyMessageId: string | null;
+  lastReplySubject: string | null;
+  lastReplyText: string | null;
+  lastReplyHtml: string | null;
+  lastReplyReceivedAt: string | null;
+  lastReplySource: string | null;
+  replyIntent: string | null;
+  replyIntentConfidence: number | null;
+  replyIntentReason: string | null;
+  replyNextAction: Record<string, any> | null;
+  lastDeliveryEvent: string | null;
+  lastDeliveryAt: string | null;
+  emailSource: EmailSource;
+  emailWarning: string | null;
+  emailGenerated: boolean;
+  emailGeneratedAt: string | null;
+  emailGenerationMetadata: EmailGenerationMetadata;
+  emailApproved: boolean;
   emailSubject: string;
   emailText: string;
   replyText: string;
@@ -95,6 +157,7 @@ type ProspectSeed = {
   bookingStatus: string | null;
   bookingStartTime: string | null;
   bookingTitle: string | null;
+  bookingArtifact: BookingArtifact | null;
   activity: Array<{ type: string; title: string; description: string; timestamp: string | null }>;
 };
 
@@ -110,6 +173,8 @@ type EnrichResult =
 
 type TimelineEventType =
   | "enrichment_completed"
+  | "email_generated"
+  | "email_approved"
   | "email_sent"
   | "email_reply_received"
   | "qualification_complete"
@@ -124,10 +189,41 @@ type TimelineEntry = {
   complete: boolean;
 };
 
+type BookingArtifact = {
+  status: string;
+  event_type: string;
+  attendee_name: string;
+  attendee_email: string;
+  start_time: string | null;
+  timezone: string;
+  calcom_booking_id: string;
+  calcom_uid: string | null;
+  synced_at: string;
+  raw_calcom_data: any;
+};
+
 type ProspectUiState = {
   domain: string;
   usePlaywright: boolean;
   peersLimit: number;
+  lastReplyMessageId: string | null;
+  lastReplySubject: string | null;
+  lastReplyText: string | null;
+  lastReplyHtml: string | null;
+  lastReplyReceivedAt: string | null;
+  lastReplySource: string | null;
+  replyIntent: string | null;
+  replyIntentConfidence: number | null;
+  replyIntentReason: string | null;
+  replyNextAction: Record<string, any> | null;
+  lastDeliveryEvent: string | null;
+  lastDeliveryAt: string | null;
+  emailSource: EmailSource;
+  emailWarning: string | null;
+  emailGenerated: boolean;
+  emailGeneratedAt: string | null;
+  emailGenerationMetadata: EmailGenerationMetadata;
+  emailApproved: boolean;
   emailSubject: string;
   emailText: string;
   replyText: string;
@@ -148,6 +244,7 @@ type ProspectUiState = {
   qualification: QualificationSnapshot;
   timelineEvents: Partial<Record<TimelineEventType, string>>;
   lastMessageId: string | null;
+  bookingArtifact: BookingArtifact | null;
 };
 
 const TIMELINE_TEMPLATE: Array<Pick<TimelineEntry, "type" | "title" | "description">> = [
@@ -155,6 +252,16 @@ const TIMELINE_TEMPLATE: Array<Pick<TimelineEntry, "type" | "title" | "descripti
     type: "enrichment_completed",
     title: "Enrichment completed",
     description: "Signal brief, competitor gap, and CRM enrichment are ready for review.",
+  },
+  {
+    type: "email_generated",
+    title: "Email generated",
+    description: "Draft email has been generated from enrichment, ICP classification, and seed assets.",
+  },
+  {
+    type: "email_approved",
+    title: "Email approved",
+    description: "An operator has approved the generated email for live send.",
   },
   {
     type: "email_sent",
@@ -203,6 +310,24 @@ function mapProspectRecord(record: ProspectApiRecord): ProspectSeed {
     lifecycleStage: record.lifecycle_stage ?? "New",
     lastActivity: record.last_activity ?? null,
     qualification,
+    lastReplyMessageId: record.last_reply_message_id ?? null,
+    lastReplySubject: record.last_reply_subject ?? null,
+    lastReplyText: record.last_reply_text ?? null,
+    lastReplyHtml: record.last_reply_html ?? null,
+    lastReplyReceivedAt: record.last_reply_received_at ?? null,
+    lastReplySource: record.last_reply_source ?? null,
+    replyIntent: record.reply_intent ?? null,
+    replyIntentConfidence: typeof record.reply_intent_confidence === "number" ? record.reply_intent_confidence : null,
+    replyIntentReason: record.reply_intent_reason ?? null,
+    replyNextAction: record.reply_next_action ?? null,
+    lastDeliveryEvent: record.last_delivery_event ?? null,
+    lastDeliveryAt: record.last_delivery_at ?? null,
+    emailSource: record.email_source ?? null,
+    emailWarning: record.email_warning ?? null,
+    emailGenerated: Boolean(record.email_generated),
+    emailGeneratedAt: record.email_generated_at ?? null,
+    emailGenerationMetadata: record.email_generation_metadata ?? null,
+    emailApproved: Boolean(record.email_approved),
     emailSubject: record.email_subject ?? `Quick signal review for ${record.company}`,
     emailText:
       record.email_text ??
@@ -220,6 +345,7 @@ function mapProspectRecord(record: ProspectApiRecord): ProspectSeed {
     bookingStatus: record.booking_status ?? null,
     bookingStartTime: record.booking_start_time ?? null,
     bookingTitle: record.booking_title ?? null,
+    bookingArtifact: record.booking_artifact ?? null,
     activity: (record.activity ?? []).map((item) => ({
       type: String(item.type ?? ""),
       title: String(item.title ?? ""),
@@ -264,6 +390,72 @@ function confidenceClass(value: Confidence | string | undefined) {
 function ConfidenceBadge({ value }: { value: Confidence | string | undefined }) {
   const resolved = confidenceClass(value);
   return <Badge className={cn("border-none capitalize", resolved.className)}>{resolved.label}</Badge>;
+}
+
+function BooleanBadge({ value }: { value: boolean }) {
+  return (
+    <Badge className={cn("border-none", value ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700")}>
+      {value ? "yes" : "no"}
+    </Badge>
+  );
+}
+
+function BookingArtifactCard({ artifact }: { artifact: BookingArtifact }) {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Not set";
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric", 
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    }).format(new Date(dateString));
+  };
+
+  return (
+    <div className="rounded-[24px] border border-emerald-200 bg-emerald-50/80 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            ✅
+          </div>
+          <div className="text-sm font-semibold text-emerald-900">Booking confirmed</div>
+        </div>
+        <Badge className="border-none bg-emerald-100 text-emerald-800">confirmed</Badge>
+      </div>
+      
+      <div className="mt-4 space-y-3 text-sm text-emerald-800">
+        <div className="font-medium">{artifact.event_type}</div>
+        
+        <div className="grid gap-2 md:grid-cols-2">
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-600">Attendee</div>
+            <div className="mt-1 font-medium">{artifact.attendee_name}</div>
+            <div className="text-emerald-700">{artifact.attendee_email}</div>
+          </div>
+          
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-600">Date/Time</div>
+            <div className="mt-1 font-medium">{formatDate(artifact.start_time)}</div>
+            <div className="text-emerald-700">Timezone: {artifact.timezone}</div>
+          </div>
+        </div>
+        
+        <div className="grid gap-2 md:grid-cols-2">
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-600">Cal.com Booking ID</div>
+            <div className="mt-1 font-mono text-xs">{artifact.calcom_booking_id}</div>
+          </div>
+          
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-600">Synced at</div>
+            <div className="mt-1 font-medium">{formatDate(artifact.synced_at)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function StatusBadge({ value }: { value: string }) {
@@ -347,6 +539,24 @@ function createInitialProspectState(seed: ProspectSeed, existing?: ProspectUiSta
     domain: existing?.domain ?? seed.domain,
     usePlaywright: existing?.usePlaywright ?? seed.usePlaywright,
     peersLimit: existing?.peersLimit ?? seed.peersLimit,
+    lastReplyMessageId: seed.lastReplyMessageId ?? existing?.lastReplyMessageId ?? null,
+    lastReplySubject: seed.lastReplySubject ?? existing?.lastReplySubject ?? null,
+    lastReplyText: seed.lastReplyText ?? existing?.lastReplyText ?? null,
+    lastReplyHtml: seed.lastReplyHtml ?? existing?.lastReplyHtml ?? null,
+    lastReplyReceivedAt: seed.lastReplyReceivedAt ?? existing?.lastReplyReceivedAt ?? null,
+    lastReplySource: seed.lastReplySource ?? existing?.lastReplySource ?? null,
+    replyIntent: seed.replyIntent ?? existing?.replyIntent ?? null,
+    replyIntentConfidence: seed.replyIntentConfidence ?? existing?.replyIntentConfidence ?? null,
+    replyIntentReason: seed.replyIntentReason ?? existing?.replyIntentReason ?? null,
+    replyNextAction: seed.replyNextAction ?? existing?.replyNextAction ?? null,
+    lastDeliveryEvent: seed.lastDeliveryEvent ?? existing?.lastDeliveryEvent ?? null,
+    lastDeliveryAt: seed.lastDeliveryAt ?? existing?.lastDeliveryAt ?? null,
+    emailSource: seed.emailSource ?? existing?.emailSource ?? null,
+    emailWarning: seed.emailWarning ?? existing?.emailWarning ?? null,
+    emailGenerated: seed.emailGenerated ?? existing?.emailGenerated ?? false,
+    emailGeneratedAt: seed.emailGeneratedAt ?? existing?.emailGeneratedAt ?? null,
+    emailGenerationMetadata: seed.emailGenerationMetadata ?? existing?.emailGenerationMetadata ?? null,
+    emailApproved: seed.emailApproved ?? existing?.emailApproved ?? false,
     emailSubject: existing?.emailSubject ?? seed.emailSubject,
     emailText: existing?.emailText ?? seed.emailText,
     replyText: existing?.replyText ?? seed.replyText,
@@ -355,7 +565,7 @@ function createInitialProspectState(seed: ProspectSeed, existing?: ProspectUiSta
     hubspotResult: seed.hubspot ? { status: 200, data: { hubspot: seed.hubspot }, timestamp: seed.lastActivity } : existing?.hubspotResult ?? null,
     sendResult: seed.lastMessageId ? { data: { result: { id: seed.lastMessageId } }, timestamp: seed.lastActivity } : existing?.sendResult ?? null,
     replyResult: seed.activity.some((item) => item.type === "email_reply_received")
-      ? { status: 200, timestamp: seed.lastActivity }
+      ? { status: 200, timestamp: seed.lastReplyReceivedAt ?? seed.lastActivity, source: seed.lastReplySource ?? "webhook" }
       : existing?.replyResult ?? null,
     bookingResult: seed.bookingStatus ? { status: 200, data: { booking_status: seed.bookingStatus }, timestamp: seed.lastActivity } : existing?.bookingResult ?? null,
     enrichmentLoading: false,
@@ -369,6 +579,7 @@ function createInitialProspectState(seed: ProspectSeed, existing?: ProspectUiSta
     qualification: seed.qualification,
     timelineEvents,
     lastMessageId: seed.lastMessageId,
+    bookingArtifact: existing?.bookingArtifact ?? seed.bookingArtifact ?? null,
   };
 }
 
@@ -397,6 +608,8 @@ function buildTimeline(state: ProspectUiState): TimelineEntry[] {
   const completed = new Set<TimelineEventType>();
   if (state.enrichResult) completed.add("enrichment_completed");
   if (state.qualification) completed.add("qualification_complete");
+  if (state.emailGenerated) completed.add("email_generated");
+  if (state.emailApproved) completed.add("email_approved");
   if (state.lastMessageId) completed.add("email_sent");
   if (state.replyResult) completed.add("email_reply_received");
   if (state.lifecycleStage.toLowerCase().includes("booking link")) completed.add("booking_link_sent");
@@ -411,6 +624,9 @@ function buildTimeline(state: ProspectUiState): TimelineEntry[] {
 
 export default function Page() {
   const [backendUrl, setBackendUrl] = useState<string | null>(null);
+  const [liveOutbound, setLiveOutbound] = useState(true);
+  const [emailProvider, setEmailProvider] = useState<string | null>(null);
+  const [rollbackBatchSize, setRollbackBatchSize] = useState(50);
   const [prospects, setProspects] = useState<ProspectSeed[]>([]);
   const [selectedProspectId, setSelectedProspectId] = useState<string | null>(null);
   const [prospectStates, setProspectStates] = useState<Record<string, ProspectUiState>>({});
@@ -439,6 +655,9 @@ export default function Page() {
         const res = await fetch("/api/config", { cache: "no-store" });
         const data = await res.json().catch(() => ({}));
         if (typeof data?.agent_api_url === "string") setBackendUrl(data.agent_api_url);
+        setLiveOutbound(Boolean(data?.live_outbound ?? true));
+        setEmailProvider(typeof data?.email_provider === "string" ? data.email_provider : null);
+        setRollbackBatchSize(Number(data?.rollback_batch_size ?? 50));
       } catch {
         // ignore
       }
@@ -455,6 +674,64 @@ export default function Page() {
   const hiringBrief = ((selectedState?.enrichResult as any)?.hiring?.brief ?? null) as HiringBrief | null;
   const gapBrief = ((selectedState?.enrichResult as any)?.competitor_gap?.brief ?? null) as CompetitorGapBrief | null;
   const timeline = selectedState ? buildTimeline(selectedState) : [];
+  const outboundPaused = !liveOutbound;
+  const qualificationReady = Boolean(selectedState?.qualification);
+  const enrichmentReady = Boolean(selectedState?.enrichResult);
+  const emailGenerated = Boolean(
+    selectedState?.emailGenerated &&
+      selectedState?.emailSource &&
+      selectedState?.emailSubject.trim() &&
+      selectedState?.emailText.trim()
+  );
+  const emailApproved = Boolean(selectedState?.emailApproved);
+  const emailSendReady = Boolean(enrichmentReady && qualificationReady && emailGenerated && emailApproved && !outboundPaused);
+  const lowConfidenceFallback =
+    Boolean(selectedState?.qualification?.segment === "abstain") ||
+    Boolean((selectedState?.qualification?.confidence ?? 0) < 0.6);
+  const emailWarning = selectedState?.emailWarning ?? (lowConfidenceFallback ? "This is a generic fallback email because ICP confidence is low." : null);
+  const loadedSeedFiles = selectedState?.emailSource?.seed_files_loaded ?? {};
+  const seedFilesLoaded = Object.values(loadedSeedFiles).filter(Boolean).length;
+  const emailGenerationMetadata = selectedState?.emailGenerationMetadata ?? null;
+  const pipelineStatuses = [
+    {
+      key: "seed",
+      label: "Seed files loaded",
+      complete: seedFilesLoaded > 0,
+      detail: seedFilesLoaded > 0 ? `${seedFilesLoaded} asset(s) loaded` : "Generate email to inspect loaded assets",
+    },
+    {
+      key: "enrichment",
+      label: "Enrichment completed",
+      complete: enrichmentReady,
+      detail: enrichmentReady ? "Hiring brief and competitor gap are available" : "Run enrichment first",
+    },
+    {
+      key: "icp",
+      label: "ICP classified",
+      complete: qualificationReady,
+      detail: qualificationReady
+        ? `${selectedState?.qualification?.segment ?? "abstain"} @ ${(selectedState?.qualification?.confidence ?? 0).toFixed(2)}`
+        : "ICP classification appears after enrichment",
+    },
+    {
+      key: "generated",
+      label: "Email generated",
+      complete: emailGenerated,
+      detail: emailGenerated ? "Draft came from the backend generator" : "Generate the email draft before editing",
+    },
+    {
+      key: "approved",
+      label: "Email approved",
+      complete: emailApproved,
+      detail: emailApproved ? "Approved for live send" : "Approve after reviewing or editing",
+    },
+    {
+      key: "sent",
+      label: "Email sent",
+      complete: Boolean(selectedState?.lastMessageId),
+      detail: selectedState?.lastMessageId ?? "Waiting for approved send",
+    },
+  ];
 
   function updateSelectedState(updater: (current: ProspectUiState) => ProspectUiState) {
     if (!selectedProspect) return;
@@ -562,25 +839,92 @@ export default function Page() {
     }
   }
 
+  async function generateEmail() {
+    if (!selectedProspect || !selectedState) return;
+    updateSelectedState((current) => ({ ...current, prospectActionLoading: "generate-email", actionsError: null }));
+    try {
+      const res = await fetch("/api/generate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prospect_id: selectedProspect.id,
+          approval_reset: true,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((data as any)?.detail ?? (data as any)?.error ?? "Email generation failed");
+      updateSelectedState((current) => ({
+        ...current,
+        prospectActionLoading: null,
+        emailSubject: (data as any)?.email?.subject ?? current.emailSubject,
+        emailText: (data as any)?.email?.text ?? current.emailText,
+        emailSource: (data as any)?.email?.source ?? null,
+        emailWarning: (data as any)?.email?.warning ?? null,
+        emailGenerated: true,
+        emailGeneratedAt: (data as any)?.generation_metadata?.generated_at ?? new Date().toISOString(),
+        emailGenerationMetadata: (data as any)?.generation_metadata ?? null,
+        emailApproved: false,
+      }));
+      await loadProspects();
+    } catch (error: any) {
+      updateSelectedState((current) => ({
+        ...current,
+        prospectActionLoading: null,
+        actionsError: error?.message ?? "Unknown error",
+      }));
+    }
+  }
+
+  async function approveEmail(approved: boolean) {
+    if (!selectedProspect || !selectedState) return;
+    updateSelectedState((current) => ({ ...current, prospectActionLoading: approved ? "approve-email" : "unapprove-email", actionsError: null }));
+    try {
+      const res = await fetch("/api/approve-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prospect_id: selectedProspect.id,
+          approved,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((data as any)?.detail ?? (data as any)?.error ?? "Email approval update failed");
+      updateSelectedState((current) => ({
+        ...current,
+        prospectActionLoading: null,
+        emailApproved: Boolean((data as any)?.approved),
+      }));
+      await loadProspects();
+    } catch (error: any) {
+      updateSelectedState((current) => ({
+        ...current,
+        prospectActionLoading: null,
+        actionsError: error?.message ?? "Unknown error",
+      }));
+    }
+  }
+
   async function processReply() {
     if (!selectedProspect || !selectedState) return;
     updateSelectedState((current) => ({ ...current, prospectActionLoading: "reply", actionsError: null }));
     try {
+      const manualText = selectedState.replyText.trim();
+      const useStoredReply = manualText.length === 0 && Boolean(selectedState.lastReplyText);
       const res = await fetch("/api/process-reply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prospect_id: selectedProspect.id,
-          message_id: selectedState.lastMessageId,
-          subject: selectedState.emailSubject,
-          text: selectedState.replyText,
+          message_id: useStoredReply ? selectedState.lastReplyMessageId : selectedState.lastMessageId,
+          subject: useStoredReply ? selectedState.lastReplySubject : selectedState.emailSubject,
+          text: useStoredReply ? null : manualText,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((data as any)?.detail ?? (data as any)?.error ?? "Reply processing failed");
       updateSelectedState((current) => ({
         ...current,
-        replyResult: { status: res.status, data, timestamp: new Date().toISOString() },
+        replyResult: { status: res.status, data, timestamp: new Date().toISOString(), source: useStoredReply ? "stored_webhook_reply" : "manual" },
         prospectActionLoading: null,
       }));
       await loadProspects();
@@ -630,6 +974,9 @@ export default function Page() {
           booking_id: selectedState.bookingId,
           status: "confirmed",
           title: `${selectedProspect.company} discovery call`,
+          attendee_name: selectedProspect.prospectName,
+          attendee_email: selectedProspect.email,
+          timezone: "EAT", // Default to East Africa Time as per requirements
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -637,6 +984,7 @@ export default function Page() {
       updateSelectedState((current) => ({
         ...current,
         bookingResult: { status: res.status, data, timestamp: new Date().toISOString() },
+        bookingArtifact: (data as any)?.booking_artifact ?? null,
         prospectActionLoading: null,
       }));
       await loadProspects();
@@ -683,7 +1031,7 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(242,181,76,0.18),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.92),_rgba(245,247,250,0.98))] px-4 py-6 md:px-8 md:py-8">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 overflow-x-clip">
         <header className="overflow-hidden rounded-[32px] border border-border/70 bg-white/85 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:px-8">
           <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
@@ -696,7 +1044,8 @@ export default function Page() {
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
                 Prospects are loaded from backend storage, enrichment artifacts are generated by the pipeline, outreach is
-                sent through MailerSend, and CRM plus booking state are synced back into HubSpot.
+                explicitly generated from signals plus seed assets, approved by an operator, sent through MailerSend, and
+                then synced back into HubSpot.
               </p>
             </div>
             <div className="grid gap-3 md:grid-cols-3 xl:w-[560px]">
@@ -716,13 +1065,18 @@ export default function Page() {
             <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
               <Flame className="h-4 w-4 text-slate-500" />
               Product flow
-              <span className="font-medium text-slate-900">Prospect → Enrichment → Outreach → Reply → Booking Link → Booking Sync</span>
+              <span className="font-medium text-slate-900">Prospect → Enrichment → ICP → Generate Email → Approve → Send → Reply → Booking</span>
+            </div>
+            <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1.5", outboundPaused ? "bg-rose-100 text-rose-900" : "bg-emerald-100 text-emerald-900")}>
+              <Send className="h-4 w-4" />
+              Outbound
+              <span className="font-medium">{outboundPaused ? "Paused" : "Live"}</span>
             </div>
           </div>
         </header>
 
-        <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-          <Card className="overflow-hidden border border-border/70 bg-white/85 backdrop-blur">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+          <Card className="min-w-0 overflow-hidden border border-border/70 bg-white/85 backdrop-blur">
             <CardHeader className="border-b border-border/70 pb-4">
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
@@ -731,7 +1085,7 @@ export default function Page() {
               <CardDescription>Loaded from backend storage. Select a prospect to review signals and move the thread forward.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              <div className="max-w-full overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-slate-50/90 text-xs uppercase tracking-[0.18em] text-slate-500">
                     <tr>
@@ -777,9 +1131,9 @@ export default function Page() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-6">
-            <div className="grid gap-6 2xl:grid-cols-[1.1fr_0.9fr]">
-              <Card className="border border-border/70 bg-white/90">
+          <div className="grid min-w-0 gap-6">
+            <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+              <Card className="min-w-0 border border-border/70 bg-white/90">
                 <CardHeader className="border-b border-border/60 pb-4">
                   <CardTitle className="flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -814,15 +1168,25 @@ export default function Page() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-border/70 bg-white/90">
+              <Card className="min-w-0 border border-border/70 bg-white/90">
                 <CardHeader className="border-b border-border/60 pb-4">
                   <CardTitle className="flex items-center gap-2">
                     <Send className="h-5 w-5 text-primary" />
                     Prospect Actions
                   </CardTitle>
-                  <CardDescription>Product actions that use the live backend flow, with MailerSend as the primary email channel.</CardDescription>
+                  <CardDescription>
+                    Product actions that use the live backend flow, with {emailProvider ?? "the configured provider"} as the primary email channel.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
+                  {outboundPaused ? (
+                    <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                      <div className="font-semibold">Live outbound is paused</div>
+                      <div className="mt-1">
+                        `LIVE_OUTBOUND=false` is active. Email and booking-link sends are blocked until the last {rollbackBatchSize} briefs and complaint logs are reviewed.
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm text-muted-foreground">Domain</label>
@@ -848,17 +1212,141 @@ export default function Page() {
                     <Switch checked={selectedState.usePlaywright} onCheckedChange={(checked) => updateSelectedState((current) => ({ ...current, usePlaywright: checked }))} />
                   </div>
 
+                  <div className="rounded-[24px] border border-border/70 bg-slate-50/80 p-5">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Pipeline Status</div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {pipelineStatuses.map((item) => (
+                        <div key={item.key} className={cn("rounded-[20px] border p-4", item.complete ? "border-emerald-200 bg-emerald-50/80" : "border-border/70 bg-white")}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-semibold text-slate-900">{item.label}</div>
+                            <Badge className={cn("border-none", item.complete ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700")}>
+                              {item.complete ? "complete" : "pending"}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 text-sm text-slate-600">{item.detail}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[24px] border border-border/70 bg-white p-5">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">2. ICP Classification</div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                      <div className="rounded-[18px] bg-slate-50/80 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Segment</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">{selectedState.qualification?.segment ?? "Pending"}</div>
+                      </div>
+                      <div className="rounded-[18px] bg-slate-50/80 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Confidence</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">
+                          {selectedState.qualification ? selectedState.qualification.confidence.toFixed(2) : "n/a"}
+                        </div>
+                      </div>
+                      <div className="rounded-[18px] bg-slate-50/80 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Pitch angle</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">{selectedState.qualification?.pitchAngle ?? "Pending"}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm text-slate-600">
+                      ICP classification is produced by enrichment and used to decide whether the email can stay segment-specific or must fall back to a generic draft.
+                    </div>
+                  </div>
+
+                  <div className="rounded-[24px] border border-border/70 bg-white p-5">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">3. Generate Email</div>
+                    <div className="mt-3 rounded-[20px] border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-950">
+                      This email is generated to convert enriched company signals into personalized outbound outreach. Signal-grounded emails are expected to outperform generic templates because they reference verifiable company context.
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-[18px] bg-slate-50/80 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Generation mode</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">
+                          {emailGenerationMetadata?.generation_mode ?? selectedState.emailSource?.generation_mode ?? "pending"}
+                        </div>
+                      </div>
+                      <div className="rounded-[18px] bg-slate-50/80 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Generated at</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">
+                          {selectedState.emailGeneratedAt ? formatTimestamp(selectedState.emailGeneratedAt) : "Not generated yet"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <DetailRow label="Prospect ID" value={emailGenerationMetadata?.prospect_id ?? selectedProspect.id} />
+                      <DetailRow label="Thread ID" value={emailGenerationMetadata?.thread_id ?? detailIdentity.threadId} />
+                      <DetailRow label="ICP segment" value={emailGenerationMetadata?.icp_segment ?? selectedState.qualification?.segment ?? "Pending"} />
+                      <DetailRow
+                        label="ICP confidence"
+                        value={
+                          typeof emailGenerationMetadata?.icp_confidence === "number"
+                            ? emailGenerationMetadata.icp_confidence.toFixed(2)
+                            : selectedState.qualification
+                              ? selectedState.qualification.confidence.toFixed(2)
+                              : "n/a"
+                        }
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Outreach subject</label>
-                    <Input value={selectedState.emailSubject} onChange={(event) => updateSelectedState((current) => ({ ...current, emailSubject: event.target.value }))} />
+                    <label className="text-sm text-muted-foreground">4. Approve / Edit Email: subject</label>
+                    <Input
+                      value={selectedState.emailSubject}
+                      onChange={(event) =>
+                        updateSelectedState((current) => ({ ...current, emailSubject: event.target.value, emailApproved: false }))
+                      }
+                    />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Outreach body</label>
+                    <label className="text-sm text-muted-foreground">4. Approve / Edit Email: body</label>
                     <textarea
                       value={selectedState.emailText}
-                      onChange={(event) => updateSelectedState((current) => ({ ...current, emailText: event.target.value }))}
+                      onChange={(event) =>
+                        updateSelectedState((current) => ({ ...current, emailText: event.target.value, emailApproved: false }))
+                      }
                       className="min-h-[96px] w-full rounded-[22px] border border-border/70 bg-white px-4 py-3 text-sm shadow-sm outline-none ring-0 transition focus:border-ring"
                     />
+                  </div>
+                  {emailWarning ? (
+                    <div className="rounded-[22px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                      <div className="font-semibold">Low-confidence fallback</div>
+                      <div className="mt-1">{emailWarning}</div>
+                    </div>
+                  ) : null}
+                  <div className="rounded-[24px] border border-border/70 bg-slate-50/80 p-5">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Email Source</div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <DetailRow label="Used enrichment data" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_enrichment_data)} />} />
+                      <DetailRow label="Used ICP segment" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_icp_segment)} />} />
+                      <DetailRow label="Used AI maturity score" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_ai_maturity_score)} />} />
+                      <DetailRow label="Used competitor gap brief" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_competitor_gap_brief)} />} />
+                      <DetailRow label="Used style_guide.md" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_style_guide)} />} />
+                      <DetailRow label="Used email_sequences" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_email_sequences)} />} />
+                      <DetailRow label="Used case studies" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_case_studies)} />} />
+                      <DetailRow label="Pitch language hint" value={selectedState.emailSource?.pitch_language_hint ?? "n/a"} />
+                    </div>
+                    <div className="mt-4 rounded-[20px] bg-white p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Signals used</div>
+                      <div className="mt-2 text-sm text-slate-700">
+                        {(selectedState.emailSource?.signals_used ?? []).length > 0
+                          ? (selectedState.emailSource?.signals_used ?? []).join(", ")
+                          : "None detected. Generic fallback language is in use."}
+                      </div>
+                      <div className="mt-3 text-xs text-slate-500">
+                        Tracked signals: funding, hiring, layoffs, leadership change, AI maturity.
+                      </div>
+                    </div>
+                    <div className="mt-4 rounded-[20px] bg-white p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Loaded seed files</div>
+                      <div className="mt-3 grid gap-2 md:grid-cols-2">
+                        {["style_guide.md", "email_sequences/cold.md", "case_studies.md", "sales_deck_notes.md"].map((file) => (
+                          <div key={file} className="flex items-center justify-between gap-3 rounded-[16px] border border-border/70 px-3 py-2 text-sm">
+                            <span className="text-slate-700">{file}</span>
+                            <BooleanBadge value={Boolean((selectedState.emailSource?.seed_files_loaded ?? {})[file])} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm text-muted-foreground">Reply text for emergency manual fallback</label>
@@ -876,17 +1364,53 @@ export default function Page() {
                   <div className="grid gap-3 md:grid-cols-2">
                     <Button type="button" className="gap-2" onClick={runEnrichment} disabled={selectedState.enrichmentLoading}>
                       {selectedState.enrichmentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      Run Enrichment
+                      1. Run Enrichment
                     </Button>
-                    <Button type="button" variant="secondary" className="gap-2" onClick={sendOutreach} disabled={selectedState.prospectActionLoading === "send-email"}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="gap-2"
+                      onClick={generateEmail}
+                      disabled={!enrichmentReady || !qualificationReady || selectedState.prospectActionLoading === "generate-email"}
+                    >
+                      {selectedState.prospectActionLoading === "generate-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      3. Generate Email
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="gap-2"
+                      onClick={() => approveEmail(true)}
+                      disabled={!emailGenerated || emailApproved || selectedState.prospectActionLoading === "approve-email"}
+                    >
+                      {selectedState.prospectActionLoading === "approve-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                      4. Approve Email
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="gap-2"
+                      onClick={sendOutreach}
+                      disabled={!emailSendReady || selectedState.prospectActionLoading === "send-email"}
+                    >
                       {selectedState.prospectActionLoading === "send-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                      Send email (MailerSend)
+                      5. Send Email ({emailProvider ?? "provider"})
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="gap-2"
+                      onClick={() => approveEmail(false)}
+                      disabled={!emailGenerated || !emailApproved || selectedState.prospectActionLoading === "unapprove-email"}
+                    >
+                      {selectedState.prospectActionLoading === "unapprove-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      Reset Approval
                     </Button>
                     <Button type="button" variant="secondary" className="gap-2" onClick={processReply} disabled={selectedState.prospectActionLoading === "reply"}>
                       {selectedState.prospectActionLoading === "reply" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquareReply className="h-4 w-4" />}
-                      Process Reply
+                      Process Reply ({selectedState.replyText.trim() ? "manual" : selectedState.lastReplyText ? "stored webhook" : "manual"})
                     </Button>
-                    <Button type="button" variant="secondary" className="gap-2" onClick={sendBookingLink} disabled={selectedState.prospectActionLoading === "booking-link"}>
+                    <Button type="button" variant="secondary" className="gap-2" onClick={sendBookingLink} disabled={outboundPaused || selectedState.prospectActionLoading === "booking-link"}>
                       {selectedState.prospectActionLoading === "booking-link" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       Send Booking Link
                     </Button>
@@ -911,6 +1435,48 @@ export default function Page() {
                     </div>
                   </div>
 
+                  <div className="rounded-[24px] border border-border/70 bg-slate-50/80 p-5">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Received Reply</div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <div className="rounded-[18px] bg-white p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Source</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">{selectedState.lastReplySource ?? "No reply stored"}</div>
+                      </div>
+                      <div className="rounded-[18px] bg-white p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Received at</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">{formatTimestamp(selectedState.lastReplyReceivedAt)}</div>
+                      </div>
+                      <div className="rounded-[18px] bg-white p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Intent</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">
+                          {selectedState.replyIntent ?? "Pending"}
+                          {selectedState.replyIntentConfidence !== null ? ` (${selectedState.replyIntentConfidence.toFixed(2)})` : ""}
+                        </div>
+                      </div>
+                      <div className="rounded-[18px] bg-white p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Next action</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900">{String(selectedState.replyNextAction?.type ?? "Pending").replace(/_/g, " ")}</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 rounded-[18px] bg-white p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Reply subject</div>
+                      <div className="mt-2 text-sm text-slate-700">{selectedState.lastReplySubject ?? "n/a"}</div>
+                    </div>
+                    <div className="mt-4 rounded-[18px] bg-white p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Reply body</div>
+                      <div className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{selectedState.lastReplyText ?? "No webhook reply has been stored yet."}</div>
+                    </div>
+                    {selectedState.replyIntentReason ? (
+                      <div className="mt-4 text-sm text-slate-600">Intent reason: {selectedState.replyIntentReason}</div>
+                    ) : null}
+                    {selectedState.replyNextAction?.draft ? (
+                      <div className="mt-4 rounded-[18px] border border-border/70 bg-white p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Suggested follow-up draft</div>
+                        <div className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{String(selectedState.replyNextAction.draft)}</div>
+                      </div>
+                    ) : null}
+                  </div>
+
                   {selectedState.enrichmentError ? (
                     <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
                       <div className="font-semibold">Enrichment Error</div>
@@ -927,8 +1493,8 @@ export default function Page() {
               </Card>
             </div>
 
-            <div className="grid gap-6 2xl:grid-cols-[1.05fr_0.95fr]">
-              <Card className="border border-border/70 bg-white/90">
+            <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <Card className="min-w-0 border border-border/70 bg-white/90">
                 <CardHeader className="border-b border-border/60 pb-4">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -1006,7 +1572,7 @@ export default function Page() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-border/70 bg-white/90">
+              <Card className="min-w-0 border border-border/70 bg-white/90">
                 <CardHeader className="border-b border-border/60 pb-4">
                   <CardTitle className="flex items-center gap-2">
                     <GitCompare className="h-5 w-5 text-primary" />
@@ -1082,8 +1648,8 @@ export default function Page() {
               </Card>
             </div>
 
-            <div className="grid gap-6 2xl:grid-cols-[0.92fr_1.08fr]">
-              <Card className="border border-border/70 bg-white/90">
+            <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+              <Card className="min-w-0 border border-border/70 bg-white/90">
                 <CardHeader className="border-b border-border/60 pb-4">
                   <CardTitle className="flex items-center gap-2">
                     <Flame className="h-5 w-5 text-primary" />
@@ -1112,7 +1678,7 @@ export default function Page() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-border/70 bg-white/90">
+              <Card className="min-w-0 border border-border/70 bg-white/90">
                 <CardHeader className="border-b border-border/60 pb-4">
                   <CardTitle className="flex items-center gap-2">
                     <Mail className="h-5 w-5 text-primary" />
@@ -1148,14 +1714,15 @@ export default function Page() {
                       </div>
                     </div>
                     <div className="rounded-[24px] border border-border/70 bg-white p-5">
-                      <div className="text-sm font-semibold text-slate-900">Booking flow</div>
-                      <div className="mt-2 text-sm text-slate-600">
-                        {selectedState.bookingResult ? "Booking sync is recorded in CRM." : "Send the booking link, let the prospect book in Cal.com, then sync the booking."}
-                      </div>
-                      <div className="mt-4 space-y-2 text-sm text-slate-600">
-                        <div>Booking ID: {selectedState.bookingId}</div>
-                        <div>Booking status: {selectedState.bookingResult?.data?.booking_status ?? "Pending"}</div>
-                        <div>Last activity: {formatTimestamp(selectedState.lastActivity)}</div>
+                      <div className="text-sm font-semibold text-slate-900">Booking Artifact State</div>
+                      <div className="mt-4">
+                        {selectedState.bookingArtifact && selectedState.bookingArtifact.status === "confirmed" ? (
+                          <BookingArtifactCard artifact={selectedState.bookingArtifact} />
+                        ) : (
+                          <div className="rounded-[22px] border border-dashed border-border/70 bg-slate-50/70 p-4 text-center text-sm text-slate-500">
+                            No confirmed booking yet.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
