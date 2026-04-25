@@ -21,6 +21,7 @@ from agent.hubspot_mcp import (
     write_booking_update,
     write_enriched_contact,
 )
+from agent.openrouter_client import chat_json as openrouter_chat_json, configured_model as openrouter_model, is_enabled as openrouter_enabled
 from agent.outbound_policy import live_outbound_config, require_live_outbound
 from agent.prospect_store import append_activity, get_prospect, load_prospects, update_prospect
 from agent.prospect_flow import build_booking_link_followup_text, build_event_context, build_thread_id
@@ -670,6 +671,37 @@ def classify_reply_intent(text: str) -> dict[str, Any]:
     if not normalized:
         return {"label": "unclear", "confidence": 0.3, "reason": "empty reply body"}
 
+    if openrouter_enabled():
+        try:
+            result = openrouter_chat_json(
+                system_prompt=(
+                    "Classify inbound sales email replies. "
+                    "Return only JSON with keys label, confidence, and reason. "
+                    "Allowed labels: interested, not_interested, asks_for_info, unclear."
+                ),
+                user_prompt=json.dumps(
+                    {
+                        "reply_text": text,
+                        "labels": ["interested", "not_interested", "asks_for_info", "unclear"],
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                temperature=0.0,
+            )
+            label = str(result.get("label") or "unclear").strip()
+            if label not in {"interested", "not_interested", "asks_for_info", "unclear"}:
+                raise RuntimeError(f"Unsupported label from OpenRouter: {label}")
+            confidence = float(result.get("confidence") or 0.5)
+            reason = str(result.get("reason") or f"OpenRouter ({openrouter_model()}) classification")
+            return {
+                "label": label,
+                "confidence": max(0.0, min(1.0, round(confidence, 3))),
+                "reason": reason,
+            }
+        except RuntimeError:
+            pass
+
     not_interested_markers = ("not interested", "stop", "unsubscribe", "remove me", "no thanks", "don't contact", "do not contact")
     interested_markers = ("interested", "sounds good", "let's talk", "lets talk", "book", "call", "meeting", "demo", "chat")
     info_markers = ("send", "share", "brief", "details", "more info", "more information", "pricing", "case study", "deck")
@@ -1244,6 +1276,8 @@ def config():
         "status": "ok",
         "agent_api_url": None,
         "email_provider": _response_provider_name(),
+        "openrouter_enabled": openrouter_enabled(),
+        "openrouter_model": openrouter_model(),
         **live_outbound_config(),
     }
 

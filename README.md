@@ -82,6 +82,7 @@ For Render:
 - UI should set `AGENT_API_URL` to your backend URL (see `ui/README.md`).
 - `resend` is the default outbound email provider. Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for the normal path.
 - Set `EMAIL_PROVIDER=mailersend` with `MAILERSEND_API_KEY` and `MAILERSEND_FROM_EMAIL` if you want outbound delivery and inbound reply routing through MailerSend instead.
+- Set `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` if you want LLM-backed email generation and reply-intent classification. Without these, the repo uses the local rule-based fallback path.
 - Set `LIVE_OUTBOUND=false` to activate the kill-switch and block live outbound email, booking-link sends, and SMS.
 
 ### 2) Generate the hiring signal brief (core artifact)

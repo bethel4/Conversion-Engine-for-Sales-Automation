@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 from agent.enrichment.phrasing import phrase_with_confidence
+from agent.openrouter_client import chat_json, configured_model, is_enabled
 from agent.seed_assets import CASE_STUDIES_PATH, REPO_ROOT, SALES_DECK_NOTES_PATH, STYLE_GUIDE_PATH
 
 
@@ -37,16 +39,52 @@ def generate_outreach_email(
 
     signal_facts = _signal_facts(hiring_brief, competitor_gap_brief)
     fallback = segment == "abstain" or confidence < 0.6
-    subject = _build_subject(segment=segment, company_name=company_name, signal_facts=signal_facts, fallback=fallback)
-    body = _build_body(
-        first_name=first_name,
-        company_name=company_name,
-        segment=segment,
-        confidence=confidence,
-        pitch_angle=pitch_angle,
-        signal_facts=signal_facts,
-        fallback=fallback,
-    )
+    llm_source: dict[str, Any] | None = None
+    llm_warning: str | None = None
+    subject: str
+    body: str
+
+    if is_enabled():
+        try:
+            llm_result = _generate_with_openrouter(
+                first_name=first_name,
+                company_name=company_name,
+                segment=segment,
+                confidence=confidence,
+                pitch_angle=pitch_angle,
+                signal_facts=signal_facts,
+                fallback=fallback,
+                hiring_brief=hiring_brief,
+                competitor_gap_brief=competitor_gap_brief,
+            )
+            subject = llm_result["subject"]
+            body = llm_result["text"]
+            llm_source = {"used_openrouter": True, "model": configured_model()}
+        except RuntimeError as exc:
+            subject = _build_subject(segment=segment, company_name=company_name, signal_facts=signal_facts, fallback=fallback)
+            body = _build_body(
+                first_name=first_name,
+                company_name=company_name,
+                segment=segment,
+                confidence=confidence,
+                pitch_angle=pitch_angle,
+                signal_facts=signal_facts,
+                fallback=fallback,
+            )
+            llm_source = {"used_openrouter": False, "model": configured_model(), "fallback_error": str(exc)}
+            llm_warning = f"OpenRouter generation failed, used deterministic fallback: {exc}"
+    else:
+        subject = _build_subject(segment=segment, company_name=company_name, signal_facts=signal_facts, fallback=fallback)
+        body = _build_body(
+            first_name=first_name,
+            company_name=company_name,
+            segment=segment,
+            confidence=confidence,
+            pitch_angle=pitch_angle,
+            signal_facts=signal_facts,
+            fallback=fallback,
+        )
+        llm_source = {"used_openrouter": False, "model": None}
 
     source = {
         "used_enrichment_data": bool(hiring_brief),
@@ -66,14 +104,78 @@ def generate_outreach_email(
         "fallback_reason": "low_icp_confidence" if fallback else None,
         "pitch_language_hint": hiring_brief.get("ai_maturity", {}).get("pitch_language_hint"),
         "generation_mode": "fallback_generic" if fallback else "signal_grounded",
+        "llm": llm_source,
     }
 
     return {
         "subject": subject,
         "text": body,
         "source": source,
-        "warning": "This is a generic fallback email because ICP confidence is low." if fallback else None,
+        "warning": llm_warning or ("This is a generic fallback email because ICP confidence is low." if fallback else None),
     }
+
+
+def _generate_with_openrouter(
+    *,
+    first_name: str,
+    company_name: str,
+    segment: str,
+    confidence: float,
+    pitch_angle: str,
+    signal_facts: dict[str, Any],
+    fallback: bool,
+    hiring_brief: dict[str, Any],
+    competitor_gap_brief: dict[str, Any],
+) -> dict[str, str]:
+    system_prompt = (
+        "You generate concise B2B outbound sales emails. "
+        "Return only JSON with keys subject and text. "
+        "Use verifiable company signals only. "
+        "Never fabricate facts. "
+        "If confidence is low or fallback=true, produce a clearly generic but clean email. "
+        "Keep the email under 120 words. "
+        "End with a simple call to action."
+    )
+    user_prompt = json_dumps(
+        {
+            "task": "Generate a cold outreach email",
+            "prospect": {"first_name": first_name, "company_name": company_name},
+            "qualification": {
+                "segment": segment,
+                "confidence": confidence,
+                "pitch_angle": pitch_angle,
+                "fallback": fallback,
+            },
+            "signal_facts": signal_facts,
+            "hiring_brief": {
+                "funding": hiring_brief.get("funding"),
+                "jobs": hiring_brief.get("jobs"),
+                "layoffs": hiring_brief.get("layoffs"),
+                "leadership_change": hiring_brief.get("leadership_change"),
+                "ai_maturity": hiring_brief.get("ai_maturity"),
+            },
+            "competitor_gap_brief": {
+                "prospect_percentile": competitor_gap_brief.get("prospect_percentile"),
+                "gaps": competitor_gap_brief.get("gaps"),
+            },
+            "style_constraints": {
+                "style_guide_present": STYLE_GUIDE_PATH.exists(),
+                "case_studies_present": CASE_STUDIES_PATH.exists(),
+                "email_sequences_present": COLD_SEQUENCE_PATH.exists(),
+                "sales_deck_notes_present": SALES_DECK_NOTES_PATH.exists(),
+            },
+        }
+    )
+    result = chat_json(system_prompt=system_prompt, user_prompt=user_prompt, temperature=0.2)
+    subject = str(result.get("subject") or "").strip()
+    text = str(result.get("text") or "").strip()
+    if not subject or not text:
+        raise RuntimeError("OpenRouter response missing subject or text")
+    return {"subject": subject, "text": text}
+
+
+def json_dumps(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def _first_name(prospect_name: str | None) -> str:

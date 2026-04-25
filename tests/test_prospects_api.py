@@ -50,7 +50,16 @@ class TestProspectsApi(unittest.TestCase):
         self.assertEqual(len(body["prospects"]), 1)
         self.assertEqual(body["prospects"][0]["company"], "Consolety")
 
-    @patch.dict("os.environ", {"LIVE_OUTBOUND": "false", "EMAIL_PROVIDER": "mailersend"}, clear=False)
+    @patch.dict(
+        "os.environ",
+        {
+            "LIVE_OUTBOUND": "false",
+            "EMAIL_PROVIDER": "mailersend",
+            "OPENROUTER_API_KEY": "test-openrouter-key",
+            "OPENROUTER_MODEL": "openai/gpt-4o-mini",
+        },
+        clear=False,
+    )
     def test_config_reports_outbound_pause(self) -> None:
         result = self.client.get("/config")
 
@@ -58,6 +67,8 @@ class TestProspectsApi(unittest.TestCase):
         body = result.json()
         self.assertEqual(body["live_outbound"], False)
         self.assertEqual(body["email_provider"], "mailersend")
+        self.assertEqual(body["openrouter_enabled"], True)
+        self.assertEqual(body["openrouter_model"], "openai/gpt-4o-mini")
         self.assertEqual(body["rollback_batch_size"], 50)
 
     def test_generate_email_persists_source_and_resets_approval(self) -> None:
