@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Any
 
 
+CRUNCHBASE_COMPAT_JSON_PATH = Path("data/crunchbase_odm_sample.json")
+
+
 def normalize_company_name(name: str) -> str:
     """
     Normalization used for matching:
@@ -187,9 +190,11 @@ def lookup_company(name: str) -> dict[str, Any] | None:
         if isinstance(cached, dict) and cached.get("__not_found__") is True:
             return None
         if isinstance(cached, dict):
-            return cached  # type: ignore[return-value]
+            return _with_compat_fields(cached)  # type: ignore[return-value]
 
     record = _lookup_by_normalized_name(normalized, dataset_path)
+    if record is not None:
+        record = _with_compat_fields(record)
     if set_cache is not None:
         if record is None:
             set_cache("crunchbase_lookup", cache_key, {"__not_found__": True})
@@ -204,6 +209,25 @@ def _extract_company_name(record: dict[str, Any]) -> str | None:
         if isinstance(value, str) and value.strip():
             return value
     return None
+
+
+def _with_compat_fields(record: dict[str, Any]) -> dict[str, Any]:
+    enriched = dict(record)
+    funding = _extract_latest_funding_event(record)
+    industries = _extract_industries(record) or []
+    enriched.setdefault("domain", record.get("website") or record.get("domain"))
+    enriched.setdefault("country", record.get("country_code") or record.get("country"))
+    enriched.setdefault("employee_count", _coerce_employee_count(record.get("num_employees") or record.get("employee_count")))
+    enriched.setdefault("categories", industries)
+    enriched.setdefault("description", record.get("full_description") or record.get("about"))
+    enriched.setdefault("linkedin_url", _extract_linkedin_url(record))
+    enriched.setdefault("founded_year", _extract_founded_year(record))
+    enriched.setdefault("last_funding_date", funding.get("date"))
+    enriched.setdefault("last_funding_type", funding.get("round_type"))
+    enriched.setdefault("last_funding_amount_usd", _parse_usd_amount(funding.get("amount_usd")))
+    enriched.setdefault("_source", "crunchbase_odm")
+    enriched.setdefault("_confidence", 1.0)
+    return enriched
 
 
 def _extract_industries(record: dict[str, Any]) -> list[str] | None:
@@ -222,6 +246,38 @@ def _extract_industries(record: dict[str, Any]) -> list[str] | None:
     if isinstance(value, str) and value.strip() and value.strip().lower() != "null":
         return [value.strip()]
     return None
+
+
+def _extract_linkedin_url(record: dict[str, Any]) -> str | None:
+    parsed = _parse_jsonish(record.get("social_media_links"))
+    if isinstance(parsed, list):
+        for item in parsed:
+            if isinstance(item, str) and "linkedin.com" in item:
+                return item
+    return None
+
+
+def _extract_founded_year(record: dict[str, Any]) -> int | None:
+    raw = record.get("founded_date")
+    if not isinstance(raw, str) or len(raw) < 4:
+        return None
+    try:
+        return int(raw[:4])
+    except ValueError:
+        return None
+
+
+def _coerce_employee_count(value: Any) -> int | None:
+    if isinstance(value, int):
+        return value
+    if not isinstance(value, str):
+        return None
+    matches = [int(item) for item in re.findall(r"\d+", value)]
+    if not matches:
+        return None
+    if len(matches) == 1:
+        return matches[0]
+    return round(sum(matches[:2]) / 2)
 
 
 def _extract_latest_funding_event(record: dict[str, Any]) -> dict[str, Any]:
@@ -389,6 +445,23 @@ def _parse_usd_amount(value: Any) -> int | float | None:
 def _repo_root() -> Path:
     # agent/enrichment/crunchbase.py -> repo root is two parents up from agent/
     return Path(__file__).resolve().parents[2]
+
+
+def ensure_compat_json_dataset(target_path: str | Path | None = None) -> Path:
+    """
+    Materialize the legacy `data/crunchbase_odm_sample.json` dataset from the local CSV/JSON
+    sample when that compatibility file is absent.
+    """
+
+    target = Path(target_path) if target_path is not None else _repo_root() / CRUNCHBASE_COMPAT_JSON_PATH
+    if target.exists():
+        return target
+
+    source = Path(_resolve_dataset_path())
+    records = load_crunchbase_dataset(source)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(records, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return target
 
 
 def _resolve_dataset_path() -> str:

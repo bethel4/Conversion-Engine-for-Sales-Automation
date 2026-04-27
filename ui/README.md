@@ -46,6 +46,7 @@ AGENT_API_URL=https://conversion-engine-for-sales-automation.onrender.com
 ```
 
 The dashboard provides:
+- `Create Prospect` (adds a new production prospect record directly from the UI)
 - `Run Enrichment` (brief generation + CRM enrichment)
 - `Send Outreach` (provider-backed send through Resend or MailerSend)
 - `Process Reply` (manual fallback that uses the same backend reply-processing path as inbound email)

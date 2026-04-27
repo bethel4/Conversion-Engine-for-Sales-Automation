@@ -11,9 +11,9 @@ HUBSPOT_API_URL = "https://api.hubapi.com"
 
 
 def _hubspot_api_key() -> str:
-    api_key = os.getenv("HUBSPOT_API_KEY")
+    api_key = os.getenv("HUBSPOT_API_KEY") or os.getenv("HUBSPOT_TOKEN")
     if not api_key:
-        raise RuntimeError("HUBSPOT_API_KEY is not set")
+        raise RuntimeError("HUBSPOT_API_KEY or HUBSPOT_TOKEN is not set")
     return api_key
 
 
@@ -81,6 +81,46 @@ def _upsert_contact_by_email(email: str, properties: dict[str, Any]) -> dict[str
     return _request(
         "POST",
         "/crm/v3/objects/contacts",
+        json_body={"properties": properties},
+    )
+
+
+def _search_company_by_name(company_name: str) -> dict[str, Any] | None:
+    payload = {
+        "filterGroups": [
+            {
+                "filters": [
+                    {
+                        "propertyName": "name",
+                        "operator": "EQ",
+                        "value": company_name,
+                    }
+                ]
+            }
+        ],
+        "limit": 1,
+    }
+    result = _request("POST", "/crm/v3/objects/companies/search", json_body=payload)
+    matches = result.get("results")
+    if isinstance(matches, list) and matches:
+        first = matches[0]
+        if isinstance(first, dict):
+            return first
+    return None
+
+
+def _upsert_company_by_name(company_name: str, properties: dict[str, Any]) -> dict[str, Any]:
+    existing = _search_company_by_name(company_name)
+    if existing and existing.get("id"):
+        company_id = str(existing["id"])
+        return _request(
+            "PATCH",
+            f"/crm/v3/objects/companies/{company_id}",
+            json_body={"properties": properties},
+        )
+    return _request(
+        "POST",
+        "/crm/v3/objects/companies",
         json_body={"properties": properties},
     )
 
@@ -161,6 +201,40 @@ def build_optional_enrichment_properties(
     }
 
 
+def build_standard_company_properties(
+    *,
+    company_name: str,
+    icp_segment: str,
+    enrichment: dict[str, Any],
+) -> dict[str, Any]:
+    signals = enrichment.get("signals", {}) if isinstance(enrichment.get("signals"), dict) else {}
+    company_signal = signals.get("company", {}) if isinstance(signals.get("company"), dict) else {}
+    industry = _coalesce_text(
+        enrichment.get("industry"),
+        company_signal.get("industry"),
+        company_signal.get("industries"),
+    )
+    description = _coalesce_text(
+        company_signal.get("description"),
+        f"Enriched ICP prospect in {icp_segment.replace('_', ' ')}" if icp_segment else "",
+    )
+
+    properties: dict[str, Any] = {"name": company_name.strip()}
+    if industry:
+        properties["industry"] = industry
+
+    employee_count = _coalesce_employee_count(
+        enrichment.get("company_size"),
+        company_signal.get("num_employees"),
+        company_signal.get("company_size"),
+    )
+    if employee_count is not None:
+        properties["numberofemployees"] = employee_count
+    if description:
+        properties["description"] = description
+    return properties
+
+
 def write_enriched_contact(
     *,
     email: str,
@@ -192,6 +266,28 @@ def write_enriched_contact(
             )
         except RuntimeError:
             pass
+    company_result: dict[str, Any] | None = None
+    company_associated = False
+    company_error: str | None = None
+    if contact_id and company_name and company_name.strip():
+        company_properties = build_standard_company_properties(
+            company_name=company_name,
+            icp_segment=icp_segment,
+            enrichment=enrichment,
+        )
+        try:
+            company_result = _upsert_company_by_name(company_name.strip(), company_properties)
+            company_id = str(company_result.get("id") or "")
+            if company_id:
+                _associate_contact_to_company_default(contact_id=contact_id, company_id=company_id)
+                company_associated = True
+        except RuntimeError as exc:
+            company_error = str(exc)
+    if company_result is not None:
+        result["company"] = company_result
+        result["company_associated"] = company_associated
+    if company_error:
+        result["company_error"] = company_error
     return result
 
 
@@ -394,6 +490,22 @@ def _coalesce_bool(value: Any) -> bool:
     return False
 
 
+def _coalesce_employee_count(*values: Any) -> int | None:
+    for value in values:
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, str):
+            digits = "".join(ch if ch.isdigit() else " " for ch in value)
+            parts = [part for part in digits.split() if part]
+            if len(parts) == 1:
+                return int(parts[0])
+    return None
+
+
 def _first_non_empty(*values: Any) -> Any:
     for value in values:
         if isinstance(value, str) and value.strip():
@@ -439,6 +551,14 @@ def _associate_note_to_contact_default(*, note_id: str, contact_id: str) -> None
     _request(
         "PUT",
         f"/crm/v4/objects/notes/{note_id}/associations/default/contacts/{contact_id}",
+        json_body=None,
+    )
+
+
+def _associate_contact_to_company_default(*, contact_id: str, company_id: str) -> None:
+    _request(
+        "PUT",
+        f"/crm/v4/objects/contacts/{contact_id}/associations/default/companies/{company_id}",
         json_body=None,
     )
 

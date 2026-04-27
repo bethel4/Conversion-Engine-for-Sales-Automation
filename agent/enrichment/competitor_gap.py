@@ -33,6 +33,70 @@ DATA_TECH_KEYWORDS = ("snowflake", "bigquery", "redshift", "databricks", "dbt", 
 MODERN_CLOUD_KEYWORDS = ("kubernetes", "docker", "aws", "gcp", "google cloud", "azure", "cloudflare")
 
 
+def build_competitor_gap_brief(
+    company: dict[str, Any],
+    company_ai: dict[str, Any],
+    llm_client: Any | None = None,
+) -> dict[str, Any]:
+    """
+    Compatibility wrapper for the older mechanism layout. The current implementation is
+    local/heuristic and does not use `llm_client`.
+    """
+
+    company_name = str(company.get("name") or company.get("company_name") or "").strip()
+    if not company_name:
+        raise ValueError("company.name is required")
+
+    hiring_brief = {
+        "company": {
+            "name": company_name,
+            "crunchbase_url": company.get("url"),
+            "industries": company.get("categories") or company.get("industries"),
+            "num_employees": company.get("num_employees") or company.get("employee_count"),
+        },
+        "ai_maturity": company_ai,
+    }
+    brief = produce_competitor_gap_brief(company_name, hiring_brief=hiring_brief)
+    peer_scores = [int((peer.get("ai_maturity") or {}).get("score") or 0) for peer in brief.get("peers", [])]
+    top_quartile = sorted(peer_scores)[-max(1, len(peer_scores) // 4)] if peer_scores else 0
+    summary = (
+        f"{company_name} scores {int(company_ai.get('score') or 0)}/3 on AI maturity, "
+        f"placing it in the {brief.get('prospect_percentile', 0)}th percentile among "
+        f"{len(brief.get('peers', []))} peers."
+    )
+    return {
+        "prospect": {
+            "name": company_name,
+            "sector": _compat_sector(company),
+            "ai_maturity": int(company_ai.get("score") or 0),
+        },
+        "peers": [
+            {
+                "name": peer.get("name"),
+                "ai_maturity": int((peer.get("ai_maturity") or {}).get("score") or 0),
+                "evidence": _compat_peer_evidence(peer),
+            }
+            for peer in brief.get("peers", [])
+        ],
+        "prospect_percentile": brief.get("prospect_percentile", 0),
+        "top_quartile_threshold": top_quartile,
+        "gaps": [
+            {
+                "practice": gap.get("gap"),
+                "evidence": "; ".join(
+                    str(item.get("evidence_summary"))
+                    for item in (gap.get("evidence", {}) or {}).get("public_signals", [])
+                    if isinstance(item, dict)
+                ),
+                "confidence": gap.get("confidence"),
+                "pitch_hook": gap.get("pitch_hook"),
+            }
+            for gap in brief.get("gaps", [])
+        ],
+        "summary": summary,
+    }
+
+
 def produce_competitor_gap_brief(
     company_name: str,
     *,
@@ -249,6 +313,30 @@ def _score_target_ai(hiring_brief: dict[str, Any]) -> dict[str, Any]:
         "evidence_count": ai.get("evidence_count"),
         "justification": ai.get("justification"),
     }
+
+
+def _compat_sector(company: dict[str, Any]) -> str:
+    categories = company.get("categories")
+    if isinstance(categories, list) and categories:
+        return str(categories[0])
+    industries = company.get("industries")
+    if isinstance(industries, list) and industries:
+        return str(industries[0])
+    if isinstance(industries, str) and industries.strip():
+        return industries.strip()
+    return "unknown"
+
+
+def _compat_peer_evidence(peer: dict[str, Any]) -> list[str]:
+    ai = peer.get("ai_maturity") if isinstance(peer.get("ai_maturity"), dict) else {}
+    features = peer.get("features") if isinstance(peer.get("features"), dict) else {}
+    evidence: list[str] = []
+    if ai.get("confidence"):
+        evidence.append(f"confidence: {ai.get('confidence')}")
+    for key, value in features.items():
+        if value:
+            evidence.append(key.replace("_", " "))
+    return evidence
 
 
 def _percentile(prospect_score: int, peer_scores: list[int]) -> int:

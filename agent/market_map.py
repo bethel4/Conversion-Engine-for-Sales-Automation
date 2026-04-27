@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 from collections import Counter, defaultdict
@@ -22,6 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATASET_PATH = REPO_ROOT / "data" / "raw" / "crunchbase" / "crunchbase-companies-information.csv"
 DEFAULT_MANUAL_LABELS_PATH = REPO_ROOT / "data" / "processed" / "market_map" / "manual_labels.json"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "processed" / "market_map"
+DEFAULT_METHOD_PATH = REPO_ROOT / "method.md"
 READINESS_LABELS = {0: "dormant", 1: "emerging", 2: "active", 3: "leading"}
 
 STRONG_AI_KEYWORDS = (
@@ -107,6 +109,7 @@ def analyze_market_map(
 
     score_distribution = Counter(item["ai_readiness_score"] for item in scored_records)
     sector_summary = _build_sector_summary(scored_records)
+    market_space = _build_market_space(scored_records)
     top_cells = _rank_top_cells(scored_records)
 
     report: dict[str, Any] = {
@@ -122,6 +125,7 @@ def analyze_market_map(
             for score in range(4)
         },
         "sector_summary": sector_summary,
+        "market_space": market_space,
         "top_cells": top_cells,
     }
 
@@ -247,6 +251,97 @@ def write_market_map_report(report: dict[str, Any], *, out_dir: str | Path = DEF
     return target
 
 
+def write_market_space_csv(report: dict[str, Any], *, out_dir: str | Path = DEFAULT_OUTPUT_DIR) -> Path:
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    target = out_path / "market_space.csv"
+    fieldnames = [
+        "sector",
+        "size_band",
+        "ai_readiness",
+        "companies",
+        "avg_funding",
+        "bench_match",
+        "funded_last_12m",
+        "combined_score",
+        "lead_signal",
+    ]
+    with target.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for cell in report.get("market_space", []):
+            writer.writerow(
+                {
+                    "sector": cell["sector"],
+                    "size_band": cell["size_band"],
+                    "ai_readiness": f"{cell['ai_readiness_label']} ({cell['ai_readiness_score']})",
+                    "companies": cell["company_count"],
+                    "avg_funding": _format_usd(cell["avg_funding_usd_12m"]),
+                    "bench_match": f"{cell['avg_bench_match_score']:.2f}",
+                    "funded_last_12m": cell["funded_last_12m_count"],
+                    "combined_score": f"{cell['combined_score']:.3f}",
+                    "lead_signal": cell["lead_signal"],
+                }
+            )
+    return target
+
+
+def write_top_cells_markdown(report: dict[str, Any], *, out_dir: str | Path = DEFAULT_OUTPUT_DIR) -> Path:
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    target = out_path / "top_cells.md"
+    lines = [
+        "# Top Cells",
+        "",
+        f"As of {report.get('as_of_date')}, the strongest outbound cells in the Crunchbase batch are:",
+        "",
+    ]
+    for idx, cell in enumerate(report.get("top_cells", []), start=1):
+        lines.extend(
+            [
+                f"## {idx}. {cell['sector']} | {cell['size_band']} | {cell['ai_readiness_label']} ({cell['ai_readiness_score']})",
+                "",
+                f"- Companies: {cell['company_count']}",
+                f"- Avg funding: {_format_usd(cell['avg_funding_usd_12m'])}",
+                f"- Bench match: {cell['avg_bench_match_score']:.2f}",
+                f"- Funded last 12 months: {cell['funded_last_12m_count']}",
+                f"- Why it is attractive: {cell['narrative']}",
+                f"- Outbound recommendation: {cell['outbound_recommendation']}",
+                "",
+            ]
+        )
+    target.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return target
+
+
+def write_method_markdown(report: dict[str, Any], *, target_path: str | Path = DEFAULT_METHOD_PATH) -> Path:
+    target = Path(target_path)
+    existing = target.read_text(encoding="utf-8") if target.exists() else ""
+    section = _render_market_map_method_section(report)
+    start_marker = "<!-- market-map:start -->"
+    end_marker = "<!-- market-map:end -->"
+    block = f"{start_marker}\n{section}\n{end_marker}\n"
+
+    if start_marker in existing and end_marker in existing:
+        prefix, rest = existing.split(start_marker, 1)
+        _, suffix = rest.split(end_marker, 1)
+        updated = prefix.rstrip() + "\n\n" + block + suffix.lstrip("\n")
+    else:
+        updated = existing.rstrip() + ("\n\n" if existing.strip() else "") + block
+
+    target.write_text(updated, encoding="utf-8")
+    return target
+
+
+def write_market_map_bundle(report: dict[str, Any], *, out_dir: str | Path = DEFAULT_OUTPUT_DIR) -> dict[str, Path]:
+    return {
+        "report_json": write_market_map_report(report, out_dir=out_dir),
+        "market_space_csv": write_market_space_csv(report, out_dir=out_dir),
+        "top_cells_md": write_top_cells_markdown(report, out_dir=out_dir),
+        "method_md": write_method_markdown(report),
+    }
+
+
 def _score_record(record: dict[str, Any], *, bench_counts: dict[str, int], as_of_date: date) -> dict[str, Any]:
     score = quick_ai_score(record)
     funding = is_recently_funded(record, days=365, today=as_of_date)
@@ -291,47 +386,69 @@ def _build_sector_summary(scored_records: list[dict[str, Any]]) -> list[dict[str
     return sorted(summary, key=lambda item: (-item["ai_ready_share"], -item["company_count"], item["sector"]))[:12]
 
 
-def _rank_top_cells(scored_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+def _build_market_space(scored_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(list)
     for item in scored_records:
-        if item["ai_readiness_score"] <= 0:
-            continue
         if item["size_band"] == "unknown":
             continue
-        grouped[(item["sector"], item["size_band"], item["ai_readiness_label"])].append(item)
+        grouped[(item["sector"], item["size_band"], item["ai_readiness_score"])].append(item)
 
-    ranked = []
-    for (sector, size_band, readiness_label), items in grouped.items():
+    rows = []
+    for (sector, size_band, readiness_score), items in grouped.items():
         population = len(items)
-        if population < 3:
-            continue
         avg_funding = mean(item["funding_amount_usd_12m"] for item in items) if items else 0.0
         avg_bench_match = mean(item["bench_match_score"] for item in items) if items else 0.0
         funded_count = sum(1 for item in items if item["funded_last_12m"])
         combined_score = min(population / 20, 1.0) * 0.3 + min(avg_funding / 10_000_000, 1.0) * 0.3 + avg_bench_match * 0.4
         lead_signal = Counter(item["lead_signal"] for item in items).most_common(1)[0][0]
-        narrative = _cell_narrative(
-            sector=sector,
-            size_band=size_band,
-            readiness_label=readiness_label,
-            population=population,
-            funded_count=funded_count,
-            avg_funding=avg_funding,
-            avg_bench_match=avg_bench_match,
-            lead_signal=lead_signal,
-        )
-        ranked.append(
+        rows.append(
             {
                 "sector": sector,
                 "size_band": size_band,
-                "ai_readiness_label": readiness_label,
+                "ai_readiness_score": readiness_score,
+                "ai_readiness_label": READINESS_LABELS[readiness_score],
                 "company_count": population,
                 "funded_last_12m_count": funded_count,
                 "avg_funding_usd_12m": round(avg_funding, 2),
                 "avg_bench_match_score": round(avg_bench_match, 3),
                 "combined_score": round(combined_score, 3),
                 "lead_signal": lead_signal,
+            }
+        )
+
+    return sorted(
+        rows,
+        key=lambda item: (-item["combined_score"], -item["company_count"], item["sector"], item["size_band"], item["ai_readiness_score"]),
+    )
+
+
+def _rank_top_cells(scored_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ranked = []
+    for cell in _build_market_space(scored_records):
+        if cell["ai_readiness_score"] <= 0:
+            continue
+        if cell["company_count"] < 3:
+            continue
+        narrative = _cell_narrative(
+            sector=cell["sector"],
+            size_band=cell["size_band"],
+            readiness_label=cell["ai_readiness_label"],
+            population=cell["company_count"],
+            funded_count=cell["funded_last_12m_count"],
+            avg_funding=cell["avg_funding_usd_12m"],
+            avg_bench_match=cell["avg_bench_match_score"],
+            lead_signal=cell["lead_signal"],
+        )
+        ranked.append(
+            {
+                **cell,
                 "narrative": narrative,
+                "outbound_recommendation": _outbound_recommendation(
+                    sector=cell["sector"],
+                    size_band=cell["size_band"],
+                    readiness_label=cell["ai_readiness_label"],
+                    lead_signal=cell["lead_signal"],
+                ),
             }
         )
 
@@ -355,6 +472,14 @@ def _cell_narrative(
         f"{funded_count} were funded in the last 12 months and average recent funding is ${avg_funding:,.0f}. "
         f"Bench match averages {avg_bench_match:.0%}, so Tenacious can credibly sell into this cell around {why_buy}; "
         f"lead signal: {lead_signal}. {lead_hint}"
+    )
+
+
+def _outbound_recommendation(*, sector: str, size_band: str, readiness_label: str, lead_signal: str) -> str:
+    _, lead_hint = SECTOR_SIGNAL_HINTS.get(sector, SECTOR_SIGNAL_HINTS["Other"])
+    return (
+        f"Prioritize {size_band} accounts in {sector} with {readiness_label} readiness. "
+        f"Open with {lead_signal}, then pivot to Tenacious capacity proof and a concrete delivery wedge. {lead_hint}"
     )
 
 
@@ -501,6 +626,77 @@ def _wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float
     return max(0.0, (center - margin) / denominator), min(1.0, (center + margin) / denominator)
 
 
+def _format_usd(value: float) -> str:
+    if value >= 1_000_000_000:
+        return f"${value / 1_000_000_000:.1f}B"
+    if value >= 1_000_000:
+        return f"${value / 1_000_000:.1f}M"
+    if value >= 1_000:
+        return f"${value / 1_000:.1f}K"
+    return f"${value:,.0f}"
+
+
+def _render_market_map_method_section(report: dict[str, Any]) -> str:
+    validation = report.get("validation") if isinstance(report.get("validation"), dict) else None
+    lines = [
+        "## Market Map Validation Snapshot",
+        "",
+        "This section is generated from `agent.market_map` and summarizes the batch market-space scoring outputs.",
+        "",
+        "### Dataset",
+        "",
+        f"- Source: `{report.get('dataset_path')}`",
+        f"- Companies scored: {report.get('dataset_row_count')}",
+        f"- Dataset as of: {report.get('as_of_date')}",
+        "",
+        "### Scoring Logic",
+        "",
+        "- AI readiness is scored from 0 to 3 using keyword and industry evidence from company descriptions, industries, and named technologies.",
+        "- Sector is assigned with deterministic keyword rules over industries and company text.",
+        "- Size band is derived from Crunchbase employee ranges.",
+        "- Recent funding uses the last 12 months of disclosed rounds.",
+        "- Bench match estimates how well the company stack aligns with Tenacious bench supply.",
+        "",
+        "### Cell Ranking",
+        "",
+        "- Cells are grouped by `sector + size_band + ai_readiness`.",
+        "- Cells with fewer than 3 companies are dropped from priority ranking.",
+        "- Combined score weights population, average recent funding, and bench match.",
+        "",
+    ]
+    if validation:
+        lines.extend(
+            [
+                "### Validation",
+                "",
+                f"- Manual label sample size: {validation.get('sample_size')}",
+                f"- Macro precision: {validation.get('macro_precision')}",
+                f"- Macro recall: {validation.get('macro_recall')}",
+                f"- Exact-match accuracy: {validation.get('exact_match_accuracy')}",
+                f"- 95% CI for accuracy: {validation.get('accuracy_95_ci')}",
+                "",
+                "#### Per-Band Metrics",
+                "",
+                "| Band | Precision | Recall | Support |",
+                "| --- | ---: | ---: | ---: |",
+            ]
+        )
+        per_band = validation.get("per_band", {})
+        for band in ("dormant", "emerging", "active", "leading"):
+            metrics = per_band.get(band, {})
+            lines.append(
+                f"| {band} | {metrics.get('precision', 0.0)} | {metrics.get('recall', 0.0)} | {metrics.get('support', 0)} |"
+            )
+        lines.extend(["", "#### Known False Positives", ""])
+        for item in validation.get("known_false_positive_modes", []):
+            lines.append(f"- {item}")
+        lines.extend(["", "#### Known False Negatives", ""])
+        for item in validation.get("known_false_negative_modes", []):
+            lines.append(f"- {item}")
+        lines.append("")
+    return "\n".join(lines).rstrip()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate a lightweight market map from the Crunchbase sample")
     parser.add_argument("--dataset", default=str(DEFAULT_DATASET_PATH), help="Crunchbase CSV/JSON dataset path")
@@ -513,8 +709,19 @@ def main(argv: list[str] | None = None) -> int:
         labels_path = None
 
     report = analyze_market_map(dataset_path=args.dataset, manual_labels_path=labels_path)
-    path = write_market_map_report(report, out_dir=args.out_dir)
-    print(json.dumps({"report_path": str(path), "dataset_row_count": report["dataset_row_count"]}, indent=2))
+    paths = write_market_map_bundle(report, out_dir=args.out_dir)
+    print(
+        json.dumps(
+            {
+                "dataset_row_count": report["dataset_row_count"],
+                "report_json": str(paths["report_json"]),
+                "market_space_csv": str(paths["market_space_csv"]),
+                "top_cells_md": str(paths["top_cells_md"]),
+                "method_md": str(paths["method_md"]),
+            },
+            indent=2,
+        )
+    )
     return 0
 
 

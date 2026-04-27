@@ -56,6 +56,7 @@ python3 -m playwright install chromium
 ### 1b) (Optional) Run the UI dashboard
 
 The repo includes a Next.js dashboard under `ui/` that loads prospects from backend storage, calls the FastAPI product endpoints, and renders the generated briefs.
+The UI now also supports creating new prospect records directly, so the full demo flow can start from the dashboard instead of hand-editing `data/prospects.json`.
 
 Terminal 1 (API):
 ```bash
@@ -82,7 +83,7 @@ For Render:
 - UI should set `AGENT_API_URL` to your backend URL (see `ui/README.md`).
 - `resend` is the default outbound email provider. Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for the normal path.
 - Set `EMAIL_PROVIDER=mailersend` with `MAILERSEND_API_KEY` and `MAILERSEND_FROM_EMAIL` if you want outbound delivery and inbound reply routing through MailerSend instead.
-- Set `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` if you want LLM-backed email generation and reply-intent classification. Without these, the repo uses the local rule-based fallback path.
+- Set `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` if you want LLM-backed email generation. Reply-intent classification remains local and rule-based.
 - Set `LIVE_OUTBOUND=false` to activate the kill-switch and block live outbound email, booking-link sends, and SMS.
 
 ### 2) Generate the hiring signal brief (core artifact)
@@ -130,7 +131,7 @@ python3 -m agent.market_map
 
 Outputs:
 - `data/processed/market_map/market_map_report.json`
-- [methodology.md](/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/methodology.md)
+- [method.md](/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/method.md)
 - [memo_page_2.md](/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/memo_page_2.md)
 - [data_handling_policy.md](/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/data_handling_policy.md)
 

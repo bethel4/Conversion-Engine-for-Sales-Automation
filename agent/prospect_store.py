@@ -48,6 +48,30 @@ def save_prospects(prospects: list[dict[str, Any]]) -> None:
     path.write_text(json.dumps(prospects, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def create_prospect(prospect: dict[str, Any]) -> dict[str, Any]:
+    prospects = load_prospects()
+    prospect_id = str(prospect.get("id") or "").strip()
+    email = str(prospect.get("email") or "").strip()
+    if not prospect_id:
+        raise ValueError("Prospect id is required")
+    if not email:
+        raise ValueError("Prospect email is required")
+
+    for existing in prospects:
+        if _matches(existing, prospect_id=prospect_id):
+            raise ValueError(f"Prospect with id '{prospect_id}' already exists")
+        if _matches(existing, email=email):
+            raise ValueError(f"Prospect with email '{email}' already exists")
+
+    record = dict(prospect)
+    record.setdefault("activity", [])
+    record.setdefault("lifecycle_stage", "New")
+    record.setdefault("last_activity", _utc_now())
+    prospects.append(record)
+    save_prospects(prospects)
+    return record
+
+
 def _matches(prospect: dict[str, Any], *, prospect_id: str | None = None, email: str | None = None) -> bool:
     if prospect_id and str(prospect.get("id") or "").strip() == prospect_id:
         return True

@@ -27,10 +27,11 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
       { score, confidence, evidence_count, justification, pitch_language_hint }
     """
 
+    normalized = _normalize_signals(signals)
     per_signal: dict[str, dict[str, Any]] = {}
 
-    ai_roles = _as_int(signals.get("ai_ml_roles"))
-    eng_roles = _as_int(signals.get("engineering_roles"))
+    ai_roles = _as_int(normalized.get("ai_ml_roles"))
+    eng_roles = _as_int(normalized.get("engineering_roles"))
     ratio = (ai_roles / eng_roles) if eng_roles and eng_roles > 0 else 0.0
 
     # 1) AI-adjacent open roles (high weight)
@@ -53,7 +54,7 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
     }
 
     # 2) Named AI/ML leadership (high)
-    leadership_flag = bool(signals.get("has_named_ai_leadership", signals.get("has_head_of_ai")))
+    leadership_flag = bool(normalized.get("has_named_ai_leadership", normalized.get("has_head_of_ai")))
     per_signal["named_ai_ml_leadership"] = _bool_signal(
         leadership_flag,
         points=1.0,
@@ -62,7 +63,7 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
     )
 
     # 3) Public GitHub org activity (medium)
-    github_activity = _as_int(signals.get("github_ai_activity", signals.get("github_ai_repos")))
+    github_activity = _as_int(normalized.get("github_ai_activity", normalized.get("github_ai_repos")))
     per_signal["public_github_org_activity"] = _threshold_signal(
         github_activity,
         high=(5, 1.0),
@@ -72,7 +73,7 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
     )
 
     # 4) Executive commentary (medium)
-    exec_commentary_flag = bool(signals.get("exec_ai_commentary", signals.get("exec_llm_mentions")))
+    exec_commentary_flag = bool(normalized.get("exec_ai_commentary", normalized.get("exec_llm_mentions")))
     per_signal["executive_commentary"] = _bool_signal(
         exec_commentary_flag,
         points=0.5,
@@ -81,7 +82,7 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
     )
 
     # 5) Modern data / ML stack (low)
-    modern_stack_flag = bool(signals.get("modern_ml_stack", signals.get("ai_product_on_site")))
+    modern_stack_flag = bool(normalized.get("modern_ml_stack", normalized.get("ai_product_on_site")))
     per_signal["modern_data_ml_stack"] = _bool_signal(
         modern_stack_flag,
         points=0.5,
@@ -90,7 +91,7 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
     )
 
     # 6) Strategic communications (low)
-    strategic_flag = bool(signals.get("strategic_ai_communications", signals.get("ai_case_studies")))
+    strategic_flag = bool(normalized.get("strategic_ai_communications", normalized.get("ai_case_studies")))
     per_signal["strategic_communications"] = _bool_signal(
         strategic_flag,
         points=0.25,
@@ -118,6 +119,35 @@ def score_ai_maturity(signals: dict[str, Any]) -> dict[str, Any]:
         "evidence_count": evidence_count,
         "justification": {"raw_points": round(raw, 3), "per_signal": per_signal},
         "pitch_language_hint": hint,
+        "raw_score": round(raw, 3),
+    }
+
+
+def _normalize_signals(signals: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(signals, dict):
+        return {}
+    job = signals.get("job_data") if isinstance(signals.get("job_data"), dict) else {}
+    team = signals.get("team_page_data") if isinstance(signals.get("team_page_data"), dict) else {}
+    github = signals.get("github_data") if isinstance(signals.get("github_data"), dict) else {}
+    tech_stack = signals.get("tech_stack")
+    strategic = signals.get("strategic_comms")
+    exec_commentary = signals.get("exec_commentary")
+
+    ml_stack_terms = ("dbt", "snowflake", "databricks", "weights and biases", "ray", "vllm", "mlflow", "airflow", "kubeflow")
+    stack_items = [str(item).casefold() for item in tech_stack] if isinstance(tech_stack, list) else []
+    modern_stack = any(any(term in item for term in ml_stack_terms) for item in stack_items)
+
+    return {
+        **signals,
+        "ai_ml_roles": signals.get("ai_ml_roles", job.get("ai_ml_roles")),
+        "engineering_roles": signals.get("engineering_roles", job.get("engineering_roles")),
+        "has_named_ai_leadership": signals.get("has_named_ai_leadership", team.get("has_ai_leader")),
+        "has_head_of_ai": signals.get("has_head_of_ai", team.get("has_ai_leader")),
+        "github_ai_activity": signals.get("github_ai_activity", len(github.get("ai_repo_names", [])) if github.get("has_ai_repos") else 0),
+        "github_ai_repos": signals.get("github_ai_repos", len(github.get("ai_repo_names", [])) if github.get("has_ai_repos") else 0),
+        "exec_ai_commentary": signals.get("exec_ai_commentary", bool(exec_commentary)),
+        "modern_ml_stack": signals.get("modern_ml_stack", modern_stack),
+        "strategic_ai_communications": signals.get("strategic_ai_communications", bool(strategic)),
     }
 
 

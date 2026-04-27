@@ -120,7 +120,26 @@ def scrape_job_posts(
 
     if html is None:
         urls = guess_public_job_source_urls(domain, company_name=company_name)
-        html, used_url, used_meta = _fetch_first_html(urls, use_playwright=use_playwright)
+        try:
+            html, used_url, used_meta = _fetch_first_html(urls, use_playwright=use_playwright)
+        except Exception as exc:
+            result = _empty()
+            result.update(
+                {
+                    "source_urls": [item["url"] for item in urls],
+                    "checked_at": today.isoformat(),
+                    "fetch_error": str(exc),
+                }
+            )
+            if "robots.txt disallows fetch" in str(exc):
+                result["robots_policy"] = {
+                    "checked": True,
+                    "allowed": False,
+                    "robots_txt_url": None,
+                    "public_page_only": True,
+                }
+            set_cache("job_posts_latest", key, result)
+            return result
     else:
         urls = []
         used_url = None
@@ -466,6 +485,7 @@ def _empty() -> dict[str, Any]:
         "source_urls": [],
         "source_type": None,
         "checked_at": None,
+        "fetch_error": None,
         "robots_policy": {
             "checked": True,
             "allowed": True,

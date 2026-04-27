@@ -261,3 +261,56 @@ Decision threshold:
 The interpretation rule is:
 
 - if an ablation materially worsens factual support with `p < 0.05`, the removed component is considered necessary to the mechanism.
+
+<!-- market-map:start -->
+## Market Map Validation Snapshot
+
+This section is generated from `agent.market_map` and summarizes the batch market-space scoring outputs.
+
+### Dataset
+
+- Source: `/home/bethel/Documents/10academy/Conversion Engine for Sales Automation/data/raw/crunchbase/crunchbase-companies-information.csv`
+- Companies scored: 1000
+- Dataset as of: 2024-07-22
+
+### Scoring Logic
+
+- AI readiness is scored from 0 to 3 using keyword and industry evidence from company descriptions, industries, and named technologies.
+- Sector is assigned with deterministic keyword rules over industries and company text.
+- Size band is derived from Crunchbase employee ranges.
+- Recent funding uses the last 12 months of disclosed rounds.
+- Bench match estimates how well the company stack aligns with Tenacious bench supply.
+
+### Cell Ranking
+
+- Cells are grouped by `sector + size_band + ai_readiness`.
+- Cells with fewer than 3 companies are dropped from priority ranking.
+- Combined score weights population, average recent funding, and bench match.
+
+### Validation
+
+- Manual label sample size: 30
+- Macro precision: 0.759
+- Macro recall: 0.768
+- Exact-match accuracy: 0.767
+- 95% CI for accuracy: [0.591, 0.882]
+
+#### Per-Band Metrics
+
+| Band | Precision | Recall | Support |
+| --- | ---: | ---: | ---: |
+| dormant | 1.0 | 1.0 | 8 |
+| emerging | 0.75 | 0.667 | 9 |
+| active | 0.571 | 0.571 | 7 |
+| leading | 0.714 | 0.833 | 6 |
+
+#### Known False Positives
+
+- Marketing copy that says AI or analytics without clear evidence of an actual AI product or team.
+- Services firms that mention automation capabilities but do not show sustained AI-readiness signals.
+
+#### Known False Negatives
+
+- Stealth or services-heavy companies with sparse public descriptions and no explicit AI vocabulary.
+- Domain-specific data platforms that look operationally advanced but avoid AI terminology in public copy.
+<!-- market-map:end -->

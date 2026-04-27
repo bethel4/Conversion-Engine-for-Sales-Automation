@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from datetime import date, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 from agent.enrichment import ai_maturity, cache, job_posts, leadership, layoffs
 
@@ -85,6 +86,22 @@ class TestSignals(unittest.TestCase):
         self.assertEqual(result["open_roles_60_days_ago"], 3)
         self.assertTrue(result["robots_policy"]["public_page_only"])
         self.assertIsNotNone(result["checked_at"])
+
+    def test_job_posts_robots_block_returns_empty_signal(self) -> None:
+        with patch(
+            "agent.enrichment.job_posts._fetch_first_html",
+            side_effect=RuntimeError("robots.txt disallows fetch for https://www.linkedin.com/company/acme/jobs/"),
+        ):
+            result = job_posts.scrape_job_posts(
+                "acme.example",
+                company_name="Acme",
+                today=date(2026, 4, 23),
+            )
+
+        self.assertEqual(result["engineering_roles"], 0)
+        self.assertEqual(result["signal_strength"], "none")
+        self.assertFalse(result["robots_policy"]["allowed"])
+        self.assertIn("robots.txt disallows fetch", result["fetch_error"])
 
     def test_detect_leadership_change(self) -> None:
         sources = [

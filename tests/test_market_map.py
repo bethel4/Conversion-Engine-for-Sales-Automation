@@ -104,6 +104,80 @@ class TestMarketMap(unittest.TestCase):
         self.assertIn("dormant", report["per_band"])
         self.assertEqual(report["per_band"]["leading"]["support"], 1)
 
+    def test_write_market_map_bundle_emits_expected_files(self) -> None:
+        report = {
+            "dataset_path": "sample.csv",
+            "dataset_row_count": 2,
+            "as_of_date": "2026-04-26",
+            "market_space": [
+                {
+                    "sector": "Fintech",
+                    "size_band": "small (11-50)",
+                    "ai_readiness_score": 2,
+                    "ai_readiness_label": "active",
+                    "company_count": 4,
+                    "funded_last_12m_count": 2,
+                    "avg_funding_usd_12m": 8200000,
+                    "avg_bench_match_score": 0.72,
+                    "combined_score": 0.648,
+                    "lead_signal": "recent funding plus AI-readiness",
+                }
+            ],
+            "top_cells": [
+                {
+                    "sector": "Fintech",
+                    "size_band": "small (11-50)",
+                    "ai_readiness_score": 2,
+                    "ai_readiness_label": "active",
+                    "company_count": 4,
+                    "funded_last_12m_count": 2,
+                    "avg_funding_usd_12m": 8200000,
+                    "avg_bench_match_score": 0.72,
+                    "combined_score": 0.648,
+                    "lead_signal": "recent funding plus AI-readiness",
+                    "narrative": "Sample narrative",
+                    "outbound_recommendation": "Sample recommendation",
+                }
+            ],
+            "validation": {
+                "sample_size": 30,
+                "macro_precision": 0.7,
+                "macro_recall": 0.68,
+                "exact_match_accuracy": 0.73,
+                "accuracy_95_ci": [0.55, 0.86],
+                "per_band": {
+                    "dormant": {"precision": 0.8, "recall": 0.9, "support": 10},
+                    "emerging": {"precision": 0.6, "recall": 0.5, "support": 5},
+                    "active": {"precision": 0.7, "recall": 0.6, "support": 8},
+                    "leading": {"precision": 0.75, "recall": 0.7, "support": 7},
+                },
+                "known_false_positive_modes": ["fp example"],
+                "known_false_negative_modes": ["fn example"],
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            method_path = Path(tmp) / "method.md"
+            method_path.write_text("# Existing Method\n", encoding="utf-8")
+            report_json = market_map.write_market_map_report(report, out_dir=tmp)
+            market_space_csv = market_map.write_market_space_csv(report, out_dir=tmp)
+            top_cells_md = market_map.write_top_cells_markdown(report, out_dir=tmp)
+            written_method = market_map.write_method_markdown(report, target_path=method_path)
+            csv_text = market_space_csv.read_text(encoding="utf-8")
+            top_cells_text = top_cells_md.read_text(encoding="utf-8")
+            method_text = written_method.read_text(encoding="utf-8")
+
+        self.assertEqual(report_json.name, "market_map_report.json")
+        self.assertEqual(market_space_csv.name, "market_space.csv")
+        self.assertEqual(top_cells_md.name, "top_cells.md")
+        self.assertIn("sector,size_band,ai_readiness,companies,avg_funding,bench_match", csv_text)
+        self.assertIn("Fintech", csv_text)
+        self.assertIn("# Top Cells", top_cells_text)
+        self.assertIn("Sample recommendation", top_cells_text)
+        self.assertIn("# Existing Method", method_text)
+        self.assertIn("## Market Map Validation Snapshot", method_text)
+        self.assertIn("Macro precision: 0.7", method_text)
+
 
 if __name__ == "__main__":
     unittest.main()

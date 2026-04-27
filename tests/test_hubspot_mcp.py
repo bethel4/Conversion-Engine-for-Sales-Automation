@@ -86,10 +86,16 @@ class TestHubSpotEnrichmentProperties(unittest.TestCase):
         def side_effect(method: str, path: str, *, json_body=None):
             if method == "POST" and path == "/crm/v3/objects/contacts/search":
                 return {"results": [{"id": "123"}]}
+            if method == "POST" and path == "/crm/v3/objects/companies/search":
+                return {"results": [{"id": "456"}]}
             if method == "PATCH" and path == "/crm/v3/objects/contacts/123":
                 if "tenacious_icp_segment" in json_body["properties"]:
                     raise RuntimeError("HubSpot MCP error 403: MISSING_SCOPES")
                 return {"id": "123", "properties": json_body["properties"]}
+            if method == "PATCH" and path == "/crm/v3/objects/companies/456":
+                return {"id": "456", "properties": json_body["properties"]}
+            if method == "PUT" and path == "/crm/v4/objects/contacts/123/associations/default/companies/456":
+                return {}
             raise AssertionError(f"Unexpected request: {method} {path}")
 
         mock_request.side_effect = side_effect
@@ -114,21 +120,30 @@ class TestHubSpotEnrichmentProperties(unittest.TestCase):
         )
 
         self.assertEqual(result["id"], "123")
+        self.assertEqual(result["company"]["id"], "456")
+        self.assertTrue(result["company_associated"])
         patch_calls = [
             call for call in mock_request.call_args_list if call.args[0] == "PATCH"
         ]
-        self.assertEqual(len(patch_calls), 2)
+        self.assertEqual(len(patch_calls), 3)
         updated_properties = patch_calls[0].kwargs["json_body"]["properties"]
         self.assertEqual(updated_properties["email"], "lead@example.com")
         self.assertEqual(updated_properties["company"], "Stripe")
         self.assertEqual(updated_properties["lifecyclestage"], "salesqualifiedlead")
         self.assertEqual(updated_properties["hs_lead_status"], "OPEN")
+        company_properties = patch_calls[2].kwargs["json_body"]["properties"]
+        self.assertEqual(company_properties["name"], "Stripe")
+        self.assertEqual(company_properties["industry"], "B2B SaaS")
         self.assertFalse(
             any(
                 call.args[1] == "/crm/v3/properties/contacts"
                 for call in mock_request.call_args_list
             )
         )
+
+    @patch.dict("os.environ", {"HUBSPOT_TOKEN": "token-only"}, clear=True)
+    def test_hubspot_api_key_accepts_hubspot_token_alias(self) -> None:
+        self.assertEqual(hubspot_mcp._hubspot_api_key(), "token-only")
 
 
 if __name__ == "__main__":

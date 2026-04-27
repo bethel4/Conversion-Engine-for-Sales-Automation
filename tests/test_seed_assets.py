@@ -4,6 +4,11 @@ from agent.bench_gate import evaluate_capacity_request
 from agent.seed_assets import canonical_seed_files, load_bench_counts, load_icp_rules, load_style_guide_rules
 from agent.tone_checker import score_tone
 
+try:
+    from agent.main import classify_reply_intent
+except Exception:  # pragma: no cover
+    classify_reply_intent = None
+
 
 class TestSeedAssets(unittest.TestCase):
     def test_canonical_seed_files_exist(self) -> None:
@@ -38,6 +43,13 @@ class TestSeedAssets(unittest.TestCase):
         self.assertFalse(scored["ok"])
         self.assertIn("prospect_jargon:bench", scored["issues"])
         self.assertIn("cliche:world-class", scored["issues"])
+
+    def test_reply_intent_classifier_stays_rule_based(self) -> None:
+        if classify_reply_intent is None:
+            self.skipTest("agent.main unavailable in this environment")
+        scored = classify_reply_intent("Interested, can you send pricing and a case study?")
+        self.assertEqual(scored["label"], "interested")
+        self.assertNotIn("OpenRouter", scored["reason"])
 
 
 if __name__ == "__main__":

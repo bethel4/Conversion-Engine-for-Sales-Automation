@@ -247,6 +247,26 @@ type ProspectUiState = {
   bookingArtifact: BookingArtifact | null;
 };
 
+type ProspectCreateForm = {
+  company: string;
+  prospectName: string;
+  email: string;
+  domain: string;
+  phone: string;
+  peersLimit: number;
+  usePlaywright: boolean;
+};
+
+const EMPTY_PROSPECT_FORM: ProspectCreateForm = {
+  company: "",
+  prospectName: "",
+  email: "",
+  domain: "",
+  phone: "",
+  peersLimit: 10,
+  usePlaywright: false,
+};
+
 const TIMELINE_TEMPLATE: Array<Pick<TimelineEntry, "type" | "title" | "description">> = [
   {
     type: "enrichment_completed",
@@ -483,6 +503,86 @@ function MetricCard({ label, value, hint }: { label: string; value: string; hint
   );
 }
 
+function LaunchpadCard({
+  form,
+  loading,
+  error,
+  onChange,
+  onSubmit,
+}: {
+  form: ProspectCreateForm;
+  loading: boolean;
+  error: string | null;
+  onChange: <K extends keyof ProspectCreateForm>(field: K, value: ProspectCreateForm[K]) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <Card className="border border-amber-200 bg-[linear-gradient(135deg,rgba(255,248,235,0.98),rgba(255,255,255,0.96))] shadow-[0_20px_60px_rgba(217,119,6,0.14)]">
+      <CardHeader className="border-b border-amber-200/70 pb-4">
+        <div className="inline-flex w-fit items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-900">
+          <Sparkles className="h-3.5 w-3.5" />
+          New Prospect
+        </div>
+        <CardTitle className="mt-3 text-2xl text-slate-950">Launch a live company into the pipeline</CardTitle>
+        <CardDescription>
+          Create the prospect record once, then drive enrichment, ICP, email generation, approval, send, and nurture from the UI.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5 p-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Company</label>
+            <Input value={form.company} onChange={(event) => onChange("company", event.target.value)} placeholder="SnapTrade" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Prospect name</label>
+            <Input value={form.prospectName} onChange={(event) => onChange("prospectName", event.target.value)} placeholder="Bethel Yohannes" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Email</label>
+            <Input value={form.email} onChange={(event) => onChange("email", event.target.value)} placeholder="name@company.com" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Domain</label>
+            <Input value={form.domain} onChange={(event) => onChange("domain", event.target.value)} placeholder="snaptrade.com" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Phone</label>
+            <Input value={form.phone} onChange={(event) => onChange("phone", event.target.value)} placeholder="+251900000001" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Peer count</label>
+            <Input
+              type="number"
+              min={1}
+              max={25}
+              value={form.peersLimit}
+              onChange={(event) => onChange("peersLimit", Number(event.target.value || 10))}
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between rounded-[22px] border border-amber-200/70 bg-white/75 px-4 py-3">
+          <div>
+            <div className="text-sm font-medium text-slate-900">Use Playwright for job-post capture</div>
+            <div className="text-xs text-slate-500">Enable this only when the target careers page needs client-side rendering.</div>
+          </div>
+          <Switch checked={form.usePlaywright} onCheckedChange={(checked) => onChange("usePlaywright", checked)} />
+        </div>
+        {error ? (
+          <div className="rounded-[18px] border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" className="gap-2" onClick={onSubmit} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+            Create Prospect
+          </Button>
+          <div className="text-sm text-slate-600">Recommended first demo record: `SnapTrade`, `snaptrade.com`, your own inbox email.</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SignalCard({
   title,
   confidence,
@@ -627,10 +727,14 @@ export default function Page() {
   const [liveOutbound, setLiveOutbound] = useState(true);
   const [emailProvider, setEmailProvider] = useState<string | null>(null);
   const [rollbackBatchSize, setRollbackBatchSize] = useState(50);
+  const [newProspect, setNewProspect] = useState<ProspectCreateForm>(EMPTY_PROSPECT_FORM);
+  const [creatingProspect, setCreatingProspect] = useState(false);
+  const [createProspectError, setCreateProspectError] = useState<string | null>(null);
   const [prospects, setProspects] = useState<ProspectSeed[]>([]);
   const [selectedProspectId, setSelectedProspectId] = useState<string | null>(null);
   const [prospectStates, setProspectStates] = useState<Record<string, ProspectUiState>>({});
   const [prospectsLoading, setProspectsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("live-inbox");
 
   async function loadProspects() {
     setProspectsLoading(true);
@@ -741,6 +845,41 @@ export default function Page() {
     }));
   }
 
+  function updateNewProspect<K extends keyof ProspectCreateForm>(field: K, value: ProspectCreateForm[K]) {
+    setNewProspect((current) => ({ ...current, [field]: value }));
+  }
+
+  async function createProspectRecord() {
+    setCreatingProspect(true);
+    setCreateProspectError(null);
+    try {
+      const res = await fetch("/api/prospects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company: newProspect.company.trim(),
+          prospect_name: newProspect.prospectName.trim(),
+          email: newProspect.email.trim(),
+          domain: newProspect.domain.trim() || null,
+          phone: newProspect.phone.trim() || null,
+          peers_limit: newProspect.peersLimit,
+          use_playwright: newProspect.usePlaywright,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((data as any)?.detail ?? (data as any)?.error ?? "Prospect creation failed");
+      const createdId = String((data as any)?.prospect?.id ?? "");
+      setNewProspect(EMPTY_PROSPECT_FORM);
+      await loadProspects();
+      if (createdId) setSelectedProspectId(createdId);
+      setActiveTab("dashboard");
+    } catch (error: any) {
+      setCreateProspectError(error?.message ?? "Unknown error");
+    } finally {
+      setCreatingProspect(false);
+    }
+  }
+
   async function refreshHubSpotStatus() {
     if (!selectedProspect || !selectedState) return;
     updateSelectedState((current) => ({ ...current, prospectActionLoading: "hubspot", actionsError: null }));
@@ -782,6 +921,8 @@ export default function Page() {
           prospect_id: selectedProspect.id,
           company_name: selectedProspect.company,
           domain: selectedState.domain.trim() || null,
+          use_playwright: selectedState.usePlaywright,
+          peers_limit: selectedState.peersLimit,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as EnrichResult;
@@ -1007,7 +1148,14 @@ export default function Page() {
   if (!selectedProspect || !selectedState) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(242,181,76,0.18),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.92),_rgba(245,247,250,0.98))] px-4 py-6 md:px-8 md:py-8">
-        <div className="mx-auto max-w-[1200px]">
+        <div className="mx-auto grid max-w-[1200px] gap-6">
+          <LaunchpadCard
+            form={newProspect}
+            loading={creatingProspect}
+            error={createProspectError}
+            onChange={updateNewProspect}
+            onSubmit={createProspectRecord}
+          />
           <Card className="border border-border/70 bg-white/90">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1030,9 +1178,193 @@ export default function Page() {
   };
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(242,181,76,0.18),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.92),_rgba(245,247,250,0.98))] px-4 py-6 md:px-8 md:py-8">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top-left,_rgba(242,181,76,0.18),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.92),_rgba(245,247,250,0.98))] px-4 py-6 md:px-8 md:py-8">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 overflow-x-clip">
-        <header className="overflow-hidden rounded-[32px] border border-border/70 bg-white/85 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:px-8">
+        {/* Navigation Tabs */}
+        <div className="overflow-hidden rounded-[32px] border border-border/70 bg-white/85 px-6 py-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:px-8">
+          <nav className="flex gap-6">
+            {[
+              { id: "dashboard", label: "Dashboard" },
+              { id: "prospect-brief", label: "Prospect brief" },
+              { id: "live-inbox", label: "Live inbox" },
+              { id: "call-booking", label: "Call booking" },
+              { id: "full-pipeline", label: "Full pipeline" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                  activeTab === tab.id
+                    ? "bg-amber-100 text-amber-900"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Live Inbox View */}
+        {activeTab === "live-inbox" && (
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+            {/* Active Threads */}
+            <Card className="min-w-0 overflow-hidden border border-border/70 bg-white/85 backdrop-blur">
+              <CardHeader className="border-b border-border/70 pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Active threads
+                </CardTitle>
+                <CardDescription>Real-time prospect conversations and booking status.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-w-full overflow-x-auto">
+                  {prospectsLoading ? (
+                    <div className="p-8 text-center text-sm text-slate-500">Loading threads...</div>
+                  ) : (
+                    <div className="divide-y divide-border/60">
+                      {prospects.map((prospect) => {
+                        const state = prospectStates[prospect.id];
+                        const hasBooking = state?.bookingArtifact?.status === "confirmed";
+                        const hasReply = state?.lastReplyText;
+                        const lastActivity = formatTimestamp(state?.lastActivity);
+                        
+                        return (
+                          <div
+                            key={prospect.id}
+                            className={cn(
+                              "cursor-pointer p-4 transition-colors hover:bg-amber-50/40",
+                              selectedProspectId === prospect.id && "bg-amber-50/70"
+                            )}
+                            onClick={() => setSelectedProspectId(prospect.id)}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-slate-900">
+                                  {prospect.prospectName} · {prospect.company}
+                                </div>
+                                {hasReply && (
+                                  <div className="mt-1 text-sm text-slate-600 truncate">
+                                    "{state.lastReplyText.substring(0, 60)}..."
+                                  </div>
+                                )}
+                                {hasBooking && (
+                                  <div className="mt-1 text-sm text-slate-600 truncate">
+                                    "{state.bookingArtifact?.start_time ? new Date(state.bookingArtifact.start_time).toLocaleString('en-US', {
+                                      weekday: 'short',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                      timeZoneName: 'short'
+                                    }) : 'Booking confirmed'}"
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-2">
+                                <div className="text-xs text-slate-500">
+                                  {hasBooking ? "call booked" : hasReply ? "qualify intent" : lastActivity}
+                                </div>
+                                {hasBooking && (
+                                  <Badge className="border-none bg-emerald-100 text-emerald-800 text-xs">
+                                    call booked
+                                  </Badge>
+                                )}
+                                {state?.lastMessageId && !hasBooking && (
+                                  <Badge className="border-none bg-slate-100 text-slate-700 text-xs">
+                                    sent
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Conversation View */}
+            <Card className="min-w-0 border border-border/70 bg-white/90">
+              {selectedProspect && selectedState ? (
+                <>
+                  <CardHeader className="border-b border-border/60 pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <Mail className="h-5 w-5 text-primary" />
+                      {selectedProspect.prospectName} &lt;{selectedProspect.email}&gt;
+                    </CardTitle>
+                    <CardDescription>{selectedProspect.company} · Thread: {selectedState.threadId}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Original Email */}
+                    {selectedState.emailSubject && selectedState.emailText && (
+                      <div className="rounded-[24px] border border-border/70 bg-slate-50/80 p-5">
+                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500 mb-2">Original Message</div>
+                        <div className="font-semibold text-slate-900 mb-2">{selectedState.emailSubject}</div>
+                        <div className="text-sm text-slate-700 whitespace-pre-wrap">{selectedState.emailText}</div>
+                      </div>
+                    )}
+
+                    {/* Reply */}
+                    {selectedState.lastReplyText && (
+                      <div className="rounded-[24px] border border-emerald-200 bg-emerald-50/80 p-5">
+                        <div className="text-xs uppercase tracking-[0.18em] text-emerald-600 mb-2">Reply from {selectedProspect.prospectName}</div>
+                        <div className="text-sm text-emerald-800 whitespace-pre-wrap">{selectedState.lastReplyText}</div>
+                        <div className="mt-2 text-xs text-emerald-600">{formatTimestamp(selectedState.lastReplyReceivedAt)}</div>
+                      </div>
+                    )}
+
+                    {/* System Classification */}
+                    {selectedState.replyIntent && (
+                      <div className="rounded-[24px] border border-sky-200 bg-sky-50/80 p-5">
+                        <div className="text-xs uppercase tracking-[0.18em] text-sky-600 mb-2">System</div>
+                        <div className="text-sm text-sky-800 space-y-2">
+                          <div><strong>Intent classified:</strong> {selectedState.replyIntent}</div>
+                          {selectedState.replyNextAction && (
+                            <div><strong>Next action:</strong> {selectedState.replyNextAction.type?.replace(/_/g, ' ')}</div>
+                          )}
+                          {selectedState.qualification && (
+                            <div><strong>Bench match:</strong> {selectedState.qualification.segment} ✓ confidence {selectedState.qualification.confidence.toFixed(2)}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Agent Draft */}
+                    {selectedState.replyNextAction?.draft && (
+                      <div className="rounded-[24px] border border-amber-200 bg-amber-50/80 p-5">
+                        <div className="text-xs uppercase tracking-[0.18em] text-amber-600 mb-2">Agent reply (draft) - tone: pass</div>
+                        <div className="text-sm text-amber-800 whitespace-pre-wrap">{selectedState.replyNextAction.draft}</div>
+                      </div>
+                    )}
+
+                    {/* Booking Artifact */}
+                    <div className="rounded-[24px] border border-border/70 bg-white p-5">
+                      <div className="text-sm font-semibold text-slate-900 mb-4">Booking Artifact State</div>
+                      {selectedState.bookingArtifact && selectedState.bookingArtifact.status === "confirmed" ? (
+                        <BookingArtifactCard artifact={selectedState.bookingArtifact} />
+                      ) : (
+                        <div className="rounded-[22px] border border-dashed border-border/70 bg-slate-50/70 p-4 text-center text-sm text-slate-500">
+                          No confirmed booking yet.
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </>
+              ) : (
+                <CardContent className="p-8 text-center text-sm text-slate-500">
+                  Select a thread to view conversation
+                </CardContent>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Original Dashboard View */}
+        {activeTab === "dashboard" && (
+          <div>
+            <header className="overflow-hidden rounded-[32px] border border-border/70 bg-white/85 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:px-8">
           <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.22em] text-amber-900">
@@ -1074,6 +1406,16 @@ export default function Page() {
             </div>
           </div>
         </header>
+
+        <div className="mt-6">
+          <LaunchpadCard
+            form={newProspect}
+            loading={creatingProspect}
+            error={createProspectError}
+            onChange={updateNewProspect}
+            onSubmit={createProspectRecord}
+          />
+        </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
           <Card className="min-w-0 overflow-hidden border border-border/70 bg-white/85 backdrop-blur">
@@ -1590,7 +1932,7 @@ export default function Page() {
                           <div className="mt-2 text-sm text-slate-300">Positioned against peers with overlapping industry and size signals.</div>
                         </div>
                         <div className="rounded-[24px] border border-border/80 bg-slate-50/80 p-5">
-                          <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Peer set</div>
+                          <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Peer set</div>
                           <div className="mt-3 text-3xl font-semibold text-slate-900">{String(gapBrief?.meta?.peer_count ?? gapBrief?.peers?.length ?? 0)}</div>
                           <div className="mt-2 text-sm text-slate-600">Comparable companies used to frame the current gap brief.</div>
                         </div>
@@ -1730,7 +2072,88 @@ export default function Page() {
               </Card>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Other Tab Placeholders */}
+        {activeTab === "prospect-brief" && (
+          <Card className="p-8 text-center">
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">Prospect Brief</h2>
+            <p className="text-slate-600">Detailed prospect analysis and brief generation coming soon.</p>
+          </Card>
+        )}
+
+        {activeTab === "call-booking" && (
+          <Card className="p-8 text-center">
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">Call Booking</h2>
+            <p className="text-slate-600">Calendar integration and booking management coming soon.</p>
+          </Card>
+        )}
+
+        {activeTab === "full-pipeline" && (
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,430px)_minmax(0,1fr)]">
+            <LaunchpadCard
+              form={newProspect}
+              loading={creatingProspect}
+              error={createProspectError}
+              onChange={updateNewProspect}
+              onSubmit={createProspectRecord}
+            />
+            <Card className="border border-border/70 bg-white/90">
+              <CardHeader className="border-b border-border/60 pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Pipeline Command Center
+                </CardTitle>
+                <CardDescription>Present the entire conversion engine on one screen: source a prospect, create it, enrich it, classify it, generate copy, send, and move to booking.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Selected prospect</div>
+                    <div className="mt-2 text-xl font-semibold text-slate-950">{selectedProspect.company}</div>
+                    <div className="mt-1 text-sm text-slate-600">{selectedProspect.email}</div>
+                  </div>
+                  <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Current stage</div>
+                    <div className="mt-2"><StatusBadge value={selectedState.lifecycleStage} /></div>
+                    <div className="mt-2 text-sm text-slate-600">{selectedState.qualification?.segment ?? "Awaiting qualification"}</div>
+                  </div>
+                  <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Delivery rail</div>
+                    <div className="mt-2 text-xl font-semibold text-slate-950">{emailProvider ?? "configured"}</div>
+                    <div className="mt-1 text-sm text-slate-600">{outboundPaused ? "Outbound paused" : "Outbound live"}</div>
+                  </div>
+                </div>
+                <div className="grid gap-3">
+                  {[
+                    { step: "1. Prospect creation", detail: "Create the record directly in the app so production storage has a working lead.", ready: true },
+                    { step: "2. Enrichment + CRM write", detail: enrichmentReady ? "Hiring brief, competitor gap, and CRM payload are available." : "Run enrichment to create the artifacts and CRM sync.", ready: enrichmentReady },
+                    { step: "3. ICP + email generation", detail: qualificationReady ? `Segment ${selectedState.qualification?.segment} at ${(selectedState.qualification?.confidence ?? 0).toFixed(2)}.` : "Qualification appears after enrichment and gates email generation.", ready: qualificationReady },
+                    { step: "4. Operator approval + send", detail: emailSendReady ? "Draft is approved and ready for live send." : "Approve the generated draft before sending.", ready: emailApproved },
+                    { step: "5. Reply handling + booking", detail: selectedState.bookingArtifact ? "Reply and booking artifacts have been captured." : "Process replies and sync booking to complete the loop.", ready: Boolean(selectedState.replyResult || selectedState.bookingArtifact) },
+                  ].map((item) => (
+                    <div
+                      key={item.step}
+                      className={cn(
+                        "rounded-[22px] border p-4",
+                        item.ready ? "border-emerald-200 bg-emerald-50/75" : "border-border/70 bg-slate-50/70"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-semibold text-slate-900">{item.step}</div>
+                        <Badge className={cn("border-none", item.ready ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700")}>
+                          {item.ready ? "ready" : "pending"}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 text-sm text-slate-600">{item.detail}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
       </div>
     </main>
   );

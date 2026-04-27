@@ -1,16 +1,74 @@
 {
-  "avg_agent_cost": 0.0199,
-  "domain": "retail",
-  "evaluated_simulations": 150,
-  "git_commit": "d11a97072c49d093f7b5a3e4fe9da95b490d43ba",
-  "infra_error_count": 0,
-  "num_trials": 5,
-  "p50_latency_seconds": 105.9521,
-  "p95_latency_seconds": 551.6491,
-  "pass_at_1": 0.7267,
-  "pass_at_1_ci_95": [
-    0.6504,
-    0.7917
-  ],
-  "total_tasks": 30
+  "runs": [
+    {
+      "avg_agent_cost": 0.0199,
+      "domain": "retail",
+      "evaluated_simulations": 150,
+      "git_commit": "d11a97072c49d093f7b5a3e4fe9da95b490d43ba",
+      "infra_error_count": 0,
+      "num_trials": 5,
+      "p50_latency_seconds": 105.9521,
+      "p95_latency_seconds": 551.6491,
+      "pass_at_1": 0.7267,
+      "pass_at_1_ci_95": [
+        0.6504,
+        0.7917
+      ],
+      "total_tasks": 30
+    },
+    {
+      "partition": "dev",
+      "model": "qwen/qwen3-30b-a3b",
+      "n_tasks": 3,
+      "n_trials": 1,
+      "pass_at_1": 0.667,
+      "trial_scores": [
+        0.667
+      ],
+      "ci_95": [
+        0.667,
+        0.667
+      ],
+      "cost_per_run_usd": 0.0002,
+      "p50_latency_ms": 0,
+      "p95_latency_ms": 0,
+      "run_at": "2026-04-27T01:21:16.956398Z"
+    },
+    {
+      "partition": "dev",
+      "model": "qwen/qwen3-30b-a3b",
+      "n_tasks": 3,
+      "n_trials": 1,
+      "pass_at_1": 0.667,
+      "trial_scores": [
+        0.667
+      ],
+      "ci_95": [
+        0.667,
+        0.667
+      ],
+      "cost_per_run_usd": 0.0002,
+      "p50_latency_ms": 1,
+      "p95_latency_ms": 3,
+      "run_at": "2026-04-27T06:18:02.001174Z"
+    },
+    {
+      "partition": "dev",
+      "model": "qwen/qwen3-30b-a3b",
+      "n_tasks": 3,
+      "n_trials": 1,
+      "pass_at_1": 1.0,
+      "trial_scores": [
+        1.0
+      ],
+      "ci_95": [
+        1.0,
+        1.0
+      ],
+      "cost_per_run_usd": 0.0002,
+      "p50_latency_ms": 0,
+      "p95_latency_ms": 0,
+      "run_at": "2026-04-27T06:36:41.717794Z"
+    }
+  ]
 }

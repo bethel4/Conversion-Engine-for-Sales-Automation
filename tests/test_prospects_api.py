@@ -50,6 +50,29 @@ class TestProspectsApi(unittest.TestCase):
         self.assertEqual(len(body["prospects"]), 1)
         self.assertEqual(body["prospects"][0]["company"], "Consolety")
 
+    def test_create_prospect_persists_record(self) -> None:
+        with patch.dict("os.environ", {"PROSPECTS_STORE_PATH": str(self.store_path)}, clear=False):
+            result = self.client.post(
+                "/prospects",
+                json={
+                    "company": "SnapTrade",
+                    "prospect_name": "Bethel Yohannes",
+                    "email": "bethel+sandbox@example.com",
+                    "domain": "snaptrade.com",
+                    "phone": "+251900000001",
+                    "peers_limit": 10,
+                },
+            )
+
+        self.assertEqual(result.status_code, 200)
+        body = result.json()
+        self.assertEqual(body["status"], "created")
+        self.assertEqual(body["prospect"]["id"], "snaptrade")
+        self.assertEqual(body["prospect"]["thread_id"], "thread_snaptrade_001")
+        stored = json.loads(self.store_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(stored), 2)
+        self.assertEqual(stored[1]["company"], "SnapTrade")
+
     @patch.dict(
         "os.environ",
         {

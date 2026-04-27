@@ -21,9 +21,9 @@ from agent.hubspot_mcp import (
     write_booking_update,
     write_enriched_contact,
 )
-from agent.openrouter_client import chat_json as openrouter_chat_json, configured_model as openrouter_model, is_enabled as openrouter_enabled
+from agent.openrouter_client import configured_model as openrouter_model, is_enabled as openrouter_enabled
 from agent.outbound_policy import live_outbound_config, require_live_outbound
-from agent.prospect_store import append_activity, get_prospect, load_prospects, update_prospect
+from agent.prospect_store import append_activity, create_prospect, get_prospect, load_prospects, update_prospect
 from agent.prospect_flow import build_booking_link_followup_text, build_event_context, build_thread_id
 
 try:
@@ -76,9 +76,9 @@ def _utc_now() -> str:
 
 
 def _hubspot_api_key() -> str:
-    api_key = os.getenv("HUBSPOT_API_KEY")
+    api_key = os.getenv("HUBSPOT_API_KEY") or os.getenv("HUBSPOT_TOKEN")
     if not api_key:
-        raise RuntimeError("HUBSPOT_API_KEY is not set")
+        raise RuntimeError("HUBSPOT_API_KEY or HUBSPOT_TOKEN is not set")
     return api_key
 
 
@@ -213,6 +213,16 @@ class ProspectEnrichmentRequest(BaseModel):
     phone: Optional[str] = None
     domain: Optional[str] = None
     leadership_sources: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ProspectCreateRequest(BaseModel):
+    company: str = Field(..., min_length=1)
+    prospect_name: str = Field(..., min_length=1)
+    email: str = Field(..., min_length=3)
+    domain: Optional[str] = None
+    phone: Optional[str] = None
+    use_playwright: bool = False
+    peers_limit: int = Field(10, ge=1, le=25)
 
 
 class HiringBriefRequest(BaseModel):
@@ -670,37 +680,6 @@ def classify_reply_intent(text: str) -> dict[str, Any]:
     normalized = (text or "").strip().casefold()
     if not normalized:
         return {"label": "unclear", "confidence": 0.3, "reason": "empty reply body"}
-
-    if openrouter_enabled():
-        try:
-            result = openrouter_chat_json(
-                system_prompt=(
-                    "Classify inbound sales email replies. "
-                    "Return only JSON with keys label, confidence, and reason. "
-                    "Allowed labels: interested, not_interested, asks_for_info, unclear."
-                ),
-                user_prompt=json.dumps(
-                    {
-                        "reply_text": text,
-                        "labels": ["interested", "not_interested", "asks_for_info", "unclear"],
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                ),
-                temperature=0.0,
-            )
-            label = str(result.get("label") or "unclear").strip()
-            if label not in {"interested", "not_interested", "asks_for_info", "unclear"}:
-                raise RuntimeError(f"Unsupported label from OpenRouter: {label}")
-            confidence = float(result.get("confidence") or 0.5)
-            reason = str(result.get("reason") or f"OpenRouter ({openrouter_model()}) classification")
-            return {
-                "label": label,
-                "confidence": max(0.0, min(1.0, round(confidence, 3))),
-                "reason": reason,
-            }
-        except RuntimeError:
-            pass
 
     not_interested_markers = ("not interested", "stop", "unsubscribe", "remove me", "no thanks", "don't contact", "do not contact")
     interested_markers = ("interested", "sounds good", "let's talk", "lets talk", "book", "call", "meeting", "demo", "chat")
@@ -1285,6 +1264,38 @@ def config():
 @app.get("/prospects")
 def list_prospects_route():
     return {"prospects": load_prospects()}
+
+
+@app.post("/prospects")
+def create_prospect_route(payload: ProspectCreateRequest):
+    company = payload.company.strip()
+    prospect_name = payload.prospect_name.strip()
+    email = payload.email.strip()
+    domain = payload.domain.strip() if isinstance(payload.domain, str) and payload.domain.strip() else None
+    prospect_id = company.casefold().replace(".", "").replace("&", "and")
+    prospect_id = "".join(ch if ch.isalnum() else "_" for ch in prospect_id)
+    prospect_id = "_".join(part for part in prospect_id.split("_") if part) or "prospect"
+
+    record = {
+        "id": prospect_id,
+        "prospect_name": prospect_name,
+        "company": company,
+        "email": email,
+        "domain": domain,
+        "phone": payload.phone,
+        "thread_id": build_thread_id(company),
+        "lifecycle_stage": "New",
+        "email_subject": f"Quick signal review for {company}",
+        "email_text": f"Saw a few public signals around {company} that may be worth a closer look. Open to a short exchange?",
+        "use_playwright": bool(payload.use_playwright),
+        "peers_limit": int(payload.peers_limit),
+        "activity": [],
+    }
+    try:
+        created = create_prospect(record)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"status": "created", "prospect": created}
 
 
 @app.post("/webhook")
@@ -1936,5 +1947,5 @@ def create_contact_route(payload: ContactIn):
         return create_contact(payload.email, payload.phone)
     except RuntimeError as exc:
         message = str(exc)
-        status_code = 500 if "HUBSPOT_API_KEY is not set" in message else 502
+        status_code = 500 if "HUBSPOT_API_KEY or HUBSPOT_TOKEN is not set" in message else 502
         raise HTTPException(status_code=status_code, detail=message) from exc
