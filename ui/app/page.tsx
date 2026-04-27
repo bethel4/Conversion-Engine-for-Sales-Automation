@@ -257,6 +257,16 @@ type ProspectCreateForm = {
   usePlaywright: boolean;
 };
 
+type CompanySuggestion = {
+  name: string;
+  id?: string | null;
+  domain?: string | null;
+  country?: string | null;
+  employee_count?: number | null;
+  industries?: string[];
+  description?: string | null;
+};
+
 const EMPTY_PROSPECT_FORM: ProspectCreateForm = {
   company: "",
   prospectName: "",
@@ -266,6 +276,20 @@ const EMPTY_PROSPECT_FORM: ProspectCreateForm = {
   peersLimit: 10,
   usePlaywright: false,
 };
+
+function normalizePeersLimit(value: number) {
+  if (!Number.isFinite(value)) return 10;
+  return Math.max(1, Math.min(25, Math.round(value)));
+}
+
+function validateProspectForm(form: ProspectCreateForm) {
+  if (!form.company.trim()) return "Company is required.";
+  if (!form.prospectName.trim()) return "Prospect name is required.";
+  if (!Number.isInteger(form.peersLimit) || form.peersLimit < 1 || form.peersLimit > 25) {
+    return "Peer count must be between 1 and 25.";
+  }
+  return null;
+}
 
 const TIMELINE_TEMPLATE: Array<Pick<TimelineEntry, "type" | "title" | "description">> = [
   {
@@ -507,13 +531,19 @@ function LaunchpadCard({
   form,
   loading,
   error,
+  suggestions,
+  suggestionsLoading,
   onChange,
+  onPickCompany,
   onSubmit,
 }: {
   form: ProspectCreateForm;
   loading: boolean;
   error: string | null;
+  suggestions: CompanySuggestion[];
+  suggestionsLoading: boolean;
   onChange: <K extends keyof ProspectCreateForm>(field: K, value: ProspectCreateForm[K]) => void;
+  onPickCompany: (company: CompanySuggestion) => void;
   onSubmit: () => void;
 }) {
   return (
@@ -533,6 +563,29 @@ function LaunchpadCard({
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Company</label>
             <Input value={form.company} onChange={(event) => onChange("company", event.target.value)} placeholder="SnapTrade" />
+            <div className="rounded-[18px] border border-border/70 bg-white/80 p-2">
+              <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                {suggestionsLoading ? "Searching local company list..." : "Choose from local Crunchbase sample"}
+              </div>
+              <div className="grid gap-2">
+                {suggestions.slice(0, 5).map((company) => (
+                  <button
+                    key={`${company.name}-${company.id ?? "company"}`}
+                    type="button"
+                    className="rounded-[14px] border border-border/70 bg-slate-50/70 px-3 py-2 text-left transition-colors hover:bg-amber-50"
+                    onClick={() => onPickCompany(company)}
+                  >
+                    <div className="text-sm font-medium text-slate-900">{company.name}</div>
+                    <div className="text-xs text-slate-500">
+                      {company.domain ?? "no domain"}{company.industries && company.industries.length ? ` · ${company.industries.slice(0, 2).join(", ")}` : ""}
+                    </div>
+                  </button>
+                ))}
+                {!suggestionsLoading && suggestions.length === 0 ? (
+                  <div className="px-2 py-1 text-xs text-slate-500">No matches yet. Type part of the company name.</div>
+                ) : null}
+              </div>
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Prospect name</label>
@@ -540,7 +593,7 @@ function LaunchpadCard({
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Email</label>
-            <Input value={form.email} onChange={(event) => onChange("email", event.target.value)} placeholder="name@company.com" />
+            <Input value={form.email} onChange={(event) => onChange("email", event.target.value)} placeholder="Optional: auto-generated if empty" />
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Domain</label>
@@ -548,7 +601,7 @@ function LaunchpadCard({
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Phone</label>
-            <Input value={form.phone} onChange={(event) => onChange("phone", event.target.value)} placeholder="+251900000001" />
+            <Input value={form.phone} onChange={(event) => onChange("phone", event.target.value)} placeholder="Optional: synthetic phone if empty" />
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Peer count</label>
@@ -557,7 +610,7 @@ function LaunchpadCard({
               min={1}
               max={25}
               value={form.peersLimit}
-              onChange={(event) => onChange("peersLimit", Number(event.target.value || 10))}
+              onChange={(event) => onChange("peersLimit", normalizePeersLimit(Number(event.target.value || 10)))}
             />
           </div>
         </div>
@@ -730,6 +783,8 @@ export default function Page() {
   const [newProspect, setNewProspect] = useState<ProspectCreateForm>(EMPTY_PROSPECT_FORM);
   const [creatingProspect, setCreatingProspect] = useState(false);
   const [createProspectError, setCreateProspectError] = useState<string | null>(null);
+  const [companySuggestions, setCompanySuggestions] = useState<CompanySuggestion[]>([]);
+  const [companySuggestionsLoading, setCompanySuggestionsLoading] = useState(false);
   const [prospects, setProspects] = useState<ProspectSeed[]>([]);
   const [selectedProspectId, setSelectedProspectId] = useState<string | null>(null);
   const [prospectStates, setProspectStates] = useState<Record<string, ProspectUiState>>({});
@@ -768,6 +823,30 @@ export default function Page() {
       await loadProspects();
     })();
   }, []);
+
+  useEffect(() => {
+    const query = newProspect.company.trim();
+    if (!query) {
+      setCompanySuggestions([]);
+      return;
+    }
+    const timeoutId = setTimeout(async () => {
+      setCompanySuggestionsLoading(true);
+      try {
+        const res = await fetch(`/api/prospects?q=${encodeURIComponent(query)}&limit=8`, {
+          method: "PUT",
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        setCompanySuggestions(Array.isArray((data as any)?.companies) ? (data as any).companies : []);
+      } catch {
+        setCompanySuggestions([]);
+      } finally {
+        setCompanySuggestionsLoading(false);
+      }
+    }, 250);
+    return () => clearTimeout(timeoutId);
+  }, [newProspect.company]);
 
   const selectedProspect = useMemo(
     () => prospects.find((prospect) => prospect.id === selectedProspectId) ?? prospects[0] ?? null,
@@ -846,10 +925,27 @@ export default function Page() {
   }
 
   function updateNewProspect<K extends keyof ProspectCreateForm>(field: K, value: ProspectCreateForm[K]) {
+    if (createProspectError) setCreateProspectError(null);
     setNewProspect((current) => ({ ...current, [field]: value }));
   }
 
+  function pickSuggestedCompany(company: CompanySuggestion) {
+    setNewProspect((current) => ({
+      ...current,
+      company: company.name,
+      domain: company.domain ?? current.domain,
+      prospectName: current.prospectName || "Demo Prospect",
+    }));
+  }
+
   async function createProspectRecord() {
+    const validationError = validateProspectForm(newProspect);
+    if (validationError) {
+      setCreateProspectError(validationError);
+      return;
+    }
+
+    const normalizedPeersLimit = normalizePeersLimit(newProspect.peersLimit);
     setCreatingProspect(true);
     setCreateProspectError(null);
     try {
@@ -862,7 +958,7 @@ export default function Page() {
           email: newProspect.email.trim(),
           domain: newProspect.domain.trim() || null,
           phone: newProspect.phone.trim() || null,
-          peers_limit: newProspect.peersLimit,
+          peers_limit: normalizedPeersLimit,
           use_playwright: newProspect.usePlaywright,
         }),
       });
@@ -1153,7 +1249,10 @@ export default function Page() {
             form={newProspect}
             loading={creatingProspect}
             error={createProspectError}
+            suggestions={companySuggestions}
+            suggestionsLoading={companySuggestionsLoading}
             onChange={updateNewProspect}
+            onPickCompany={pickSuggestedCompany}
             onSubmit={createProspectRecord}
           />
           <Card className="border border-border/70 bg-white/90">
@@ -1363,202 +1462,140 @@ export default function Page() {
 
         {/* Original Dashboard View */}
         {activeTab === "dashboard" && (
-          <div>
+          <div className="space-y-6">
             <header className="overflow-hidden rounded-[32px] border border-border/70 bg-white/85 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:px-8">
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.22em] text-amber-900">
-                <Sparkles className="h-3.5 w-3.5" />
-                Tenacious Pipeline Workspace
+              <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+                <div className="max-w-3xl">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.22em] text-amber-900">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Tenacious Pipeline Workspace
+                  </div>
+                  <h1 className="mt-4 font-headline text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">
+                    Work live prospects from enrichment through booked discovery.
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+                    Run the full production demo from one screen: create the prospect, enrich it, generate the signal-grounded draft, approve, send, process reply, and sync booking.
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3 xl:w-[560px]">
+                  <MetricCard label="Qualified Prospects" value={String(dashboardStats.qualified)} hint="Enriched and ready for follow-up." />
+                  <MetricCard label="Active Threads" value={String(dashboardStats.activeThreads)} hint="Prospects with outbound activity." />
+                  <MetricCard label="Calls Booked" value={String(dashboardStats.booked)} hint="Bookings synced into CRM." />
+                </div>
               </div>
-              <h1 className="mt-4 font-headline text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">
-                Work live prospects from enrichment through booked discovery.
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-                Prospects are loaded from backend storage, enrichment artifacts are generated by the pipeline, outreach is
-                explicitly generated from signals plus seed assets, approved by an operator, sent through MailerSend, and
-                then synced back into HubSpot.
-              </p>
-            </div>
-            <div className="grid gap-3 md:grid-cols-3 xl:w-[560px]">
-              <MetricCard label="Qualified Prospects" value={String(dashboardStats.qualified)} hint="Enriched and ready for sales follow-up." />
-              <MetricCard label="Active Threads" value={String(dashboardStats.activeThreads)} hint="Prospects with outbound email activity." />
-              <MetricCard label="Calls Booked" value={String(dashboardStats.booked)} hint="Bookings synced into CRM." />
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
-              <ArrowUpRight className="h-4 w-4 text-slate-500" />
-              Backend URL
-              <span className="rounded-full bg-white px-2 py-0.5 font-medium text-slate-900 shadow-sm">
-                {backendUrl ?? "loading..."}
-              </span>
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
-              <Flame className="h-4 w-4 text-slate-500" />
-              Product flow
-              <span className="font-medium text-slate-900">Prospect → Enrichment → ICP → Generate Email → Approve → Send → Reply → Booking</span>
-            </div>
-            <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1.5", outboundPaused ? "bg-rose-100 text-rose-900" : "bg-emerald-100 text-emerald-900")}>
-              <Send className="h-4 w-4" />
-              Outbound
-              <span className="font-medium">{outboundPaused ? "Paused" : "Live"}</span>
-            </div>
-          </div>
-        </header>
+            </header>
 
-        <div className="mt-6">
-          <LaunchpadCard
-            form={newProspect}
-            loading={creatingProspect}
-            error={createProspectError}
-            onChange={updateNewProspect}
-            onSubmit={createProspectRecord}
-          />
-        </div>
+            <LaunchpadCard
+              form={newProspect}
+              loading={creatingProspect}
+              error={createProspectError}
+              suggestions={companySuggestions}
+              suggestionsLoading={companySuggestionsLoading}
+              onChange={updateNewProspect}
+              onPickCompany={pickSuggestedCompany}
+              onSubmit={createProspectRecord}
+            />
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-          <Card className="min-w-0 overflow-hidden border border-border/70 bg-white/85 backdrop-blur">
-            <CardHeader className="border-b border-border/70 pb-4">
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Prospects
-              </CardTitle>
-              <CardDescription>Loaded from backend storage. Select a prospect to review signals and move the thread forward.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="max-w-full overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50/90 text-xs uppercase tracking-[0.18em] text-slate-500">
-                    <tr>
-                      <th className="px-5 py-4 font-medium">Prospect</th>
-                      <th className="px-5 py-4 font-medium">Company</th>
-                      <th className="px-5 py-4 font-medium">Email</th>
-                      <th className="px-5 py-4 font-medium">Segment</th>
-                      <th className="px-5 py-4 font-medium">Confidence</th>
-                      <th className="px-5 py-4 font-medium">AI</th>
-                      <th className="px-5 py-4 font-medium">Stage</th>
-                      <th className="px-5 py-4 font-medium">Last activity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {prospects.map((prospect) => {
-                      const state = prospectStates[prospect.id];
-                      const summary = getProspectStateSummary(state);
-                      const active = prospect.id === selectedProspect.id;
-                      return (
-                        <tr
-                          key={prospect.id}
-                          className={cn("cursor-pointer border-t border-border/60 transition-colors hover:bg-amber-50/40", active && "bg-amber-50/70")}
-                          onClick={() => setSelectedProspectId(prospect.id)}
-                        >
-                          <td className="px-5 py-4 align-top font-semibold text-slate-900">{prospect.prospectName}</td>
-                          <td className="px-5 py-4 align-top text-slate-600">{prospect.company}</td>
-                          <td className="px-5 py-4 align-top text-slate-600">{prospect.email}</td>
-                          <td className="px-5 py-4 align-top">
-                            <Badge className="border-none bg-slate-100 text-slate-700">{summary.segment}</Badge>
-                          </td>
-                          <td className="px-5 py-4 align-top text-slate-600">{summary.confidence}</td>
-                          <td className="px-5 py-4 align-top text-slate-900">{summary.aiMaturity}</td>
-                          <td className="px-5 py-4 align-top">
-                            <StatusBadge value={summary.lifecycleStage} />
-                          </td>
-                          <td className="px-5 py-4 align-top text-xs text-slate-500">{summary.lastActivity}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid min-w-0 gap-6">
-            <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-              <Card className="min-w-0 border border-border/70 bg-white/90">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+              <Card className="border border-border/70 bg-white/90">
                 <CardHeader className="border-b border-border/60 pb-4">
                   <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    Prospect Detail
+                    <Users className="h-5 w-5 text-primary" />
+                    Prospects
                   </CardTitle>
-                  <CardDescription>Identity, account context, and thread continuity for the current prospect.</CardDescription>
+                  <CardDescription>Select the record you want to present live.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[24px] border border-border/70 bg-slate-50/80 p-5">
-                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Identity</div>
-                    <div className="mt-4 text-2xl font-semibold text-slate-950">{selectedProspect.prospectName}</div>
-                    <div className="mt-2 text-sm text-slate-600">{selectedProspect.company}</div>
-                    <div className="mt-4 space-y-3 text-sm">
-                      <DetailRow label="Email" value={selectedProspect.email} />
-                      <DetailRow label="Thread ID" value={detailIdentity.threadId} />
-                      <DetailRow label="Crunchbase ID" value={detailIdentity.crunchbaseId} />
-                    </div>
-                  </div>
-                  <div className="rounded-[24px] border border-border/70 bg-white p-5">
-                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Commercial Snapshot</div>
-                    <div className="mt-4 space-y-3 text-sm">
-                      <DetailRow label="Lifecycle stage" value={<StatusBadge value={selectedState.lifecycleStage} />} />
-                      <DetailRow
-                        label="ICP segment"
-                        value={<Badge className="border-none bg-slate-100 text-slate-700">{selectedState.qualification?.segment ?? "Pending"}</Badge>}
-                      />
-                      <DetailRow label="Qualification confidence" value={selectedState.qualification ? selectedState.qualification.confidence.toFixed(2) : "n/a"} />
-                      <DetailRow label="Pitch angle" value={selectedState.qualification?.pitchAngle ?? "exploratory_generic"} />
-                      <DetailRow label="Last activity" value={formatTimestamp(selectedState.lastActivity)} />
-                    </div>
-                  </div>
+                <CardContent className="space-y-3 p-4">
+                  {prospects.map((prospect) => {
+                    const summary = getProspectStateSummary(prospectStates[prospect.id]);
+                    const active = prospect.id === selectedProspect.id;
+                    return (
+                      <button
+                        key={prospect.id}
+                        type="button"
+                        className={cn(
+                          "w-full rounded-[22px] border px-4 py-4 text-left transition-colors",
+                          active ? "border-amber-300 bg-amber-50/80" : "border-border/70 bg-slate-50/70 hover:bg-slate-100"
+                        )}
+                        onClick={() => setSelectedProspectId(prospect.id)}
+                      >
+                        <div className="text-sm font-semibold text-slate-900">{prospect.company}</div>
+                        <div className="mt-1 text-sm text-slate-600">{prospect.prospectName}</div>
+                        <div className="mt-1 text-xs text-slate-500">{prospect.email}</div>
+                        <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                          <span>{summary.segment}</span>
+                          <span>{summary.aiMaturity}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </CardContent>
               </Card>
 
-              <Card className="min-w-0 border border-border/70 bg-white/90">
-                <CardHeader className="border-b border-border/60 pb-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <Send className="h-5 w-5 text-primary" />
-                    Prospect Actions
-                  </CardTitle>
-                  <CardDescription>
-                    Product actions that use the live backend flow, with {emailProvider ?? "the configured provider"} as the primary email channel.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {outboundPaused ? (
-                    <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
-                      <div className="font-semibold">Live outbound is paused</div>
-                      <div className="mt-1">
-                        `LIVE_OUTBOUND=false` is active. Email and booking-link sends are blocked until the last {rollbackBatchSize} briefs and complaint logs are reviewed.
-                      </div>
+              <div className="grid gap-6">
+                <Card className="border border-border/70 bg-white/90">
+                  <CardHeader className="border-b border-border/60 pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      Selected Prospect
+                    </CardTitle>
+                    <CardDescription>{selectedProspect.company} · {selectedProspect.prospectName}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Thread</div>
+                      <div className="mt-2 text-sm font-semibold text-slate-900">{detailIdentity.threadId}</div>
                     </div>
-                  ) : null}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-sm text-muted-foreground">Domain</label>
-                      <Input value={selectedState.domain} onChange={(event) => updateSelectedState((current) => ({ ...current, domain: event.target.value }))} />
+                    <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">ICP</div>
+                      <div className="mt-2 text-sm font-semibold text-slate-900">{selectedState.qualification?.segment ?? "Pending"}</div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm text-muted-foreground">Peer count</label>
-                      <Input
-                        type="number"
-                        min={5}
-                        max={10}
-                        value={selectedState.peersLimit}
-                        onChange={(event) => updateSelectedState((current) => ({ ...current, peersLimit: Number(event.target.value || 10) }))}
-                      />
+                    <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">AI Maturity</div>
+                      <div className="mt-2 text-sm font-semibold text-slate-900">{String(hiringBrief?.ai_maturity?.score ?? 0)}</div>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <div className="flex items-center justify-between rounded-[22px] border border-border/70 bg-slate-50/70 px-4 py-3">
-                    <div>
-                      <div className="text-sm font-medium text-slate-900">Use Playwright for job-post capture</div>
-                      <div className="text-xs text-slate-500">Useful when the careers page requires client-side rendering.</div>
+                <Card className="border border-border/70 bg-white/90">
+                  <CardHeader className="border-b border-border/60 pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <Send className="h-5 w-5 text-primary" />
+                      Demo Controls
+                    </CardTitle>
+                    <CardDescription>Drive the presentation from here without terminal commands.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      <Button type="button" className="gap-2" onClick={runEnrichment} disabled={selectedState.enrichmentLoading}>
+                        {selectedState.enrichmentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        Run Enrichment
+                      </Button>
+                      <Button type="button" variant="secondary" className="gap-2" onClick={generateEmail} disabled={!enrichmentReady || !qualificationReady || selectedState.prospectActionLoading === "generate-email"}>
+                        {selectedState.prospectActionLoading === "generate-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        Generate Email
+                      </Button>
+                      <Button type="button" variant="secondary" className="gap-2" onClick={() => approveEmail(true)} disabled={!emailGenerated || emailApproved || selectedState.prospectActionLoading === "approve-email"}>
+                        {selectedState.prospectActionLoading === "approve-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                        Approve
+                      </Button>
+                      <Button type="button" variant="secondary" className="gap-2" onClick={sendOutreach} disabled={!emailSendReady || selectedState.prospectActionLoading === "send-email"}>
+                        {selectedState.prospectActionLoading === "send-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        Send Email
+                      </Button>
+                      <Button type="button" variant="secondary" className="gap-2" onClick={processReply} disabled={selectedState.prospectActionLoading === "reply"}>
+                        {selectedState.prospectActionLoading === "reply" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquareReply className="h-4 w-4" />}
+                        Process Reply
+                      </Button>
+                      <Button type="button" variant="secondary" className="gap-2" onClick={syncBooking} disabled={selectedState.prospectActionLoading === "booking"}>
+                        {selectedState.prospectActionLoading === "booking" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarCheck2 className="h-4 w-4" />}
+                        Sync Booking
+                      </Button>
                     </div>
-                    <Switch checked={selectedState.usePlaywright} onCheckedChange={(checked) => updateSelectedState((current) => ({ ...current, usePlaywright: checked }))} />
-                  </div>
 
-                  <div className="rounded-[24px] border border-border/70 bg-slate-50/80 p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Pipeline Status</div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3 md:grid-cols-2">
                       {pipelineStatuses.map((item) => (
-                        <div key={item.key} className={cn("rounded-[20px] border p-4", item.complete ? "border-emerald-200 bg-emerald-50/80" : "border-border/70 bg-white")}>
+                        <div key={item.key} className={cn("rounded-[20px] border p-4", item.complete ? "border-emerald-200 bg-emerald-50/80" : "border-border/70 bg-slate-50/70")}>
                           <div className="flex items-center justify-between gap-3">
                             <div className="text-sm font-semibold text-slate-900">{item.label}</div>
                             <Badge className={cn("border-none", item.complete ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700")}>
@@ -1569,507 +1606,16 @@ export default function Page() {
                         </div>
                       ))}
                     </div>
-                  </div>
 
-                  <div className="rounded-[24px] border border-border/70 bg-white p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">2. ICP Classification</div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-[18px] bg-slate-50/80 p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Segment</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">{selectedState.qualification?.segment ?? "Pending"}</div>
-                      </div>
-                      <div className="rounded-[18px] bg-slate-50/80 p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Confidence</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">
-                          {selectedState.qualification ? selectedState.qualification.confidence.toFixed(2) : "n/a"}
-                        </div>
-                      </div>
-                      <div className="rounded-[18px] bg-slate-50/80 p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Pitch angle</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">{selectedState.qualification?.pitchAngle ?? "Pending"}</div>
-                      </div>
-                    </div>
-                    <div className="mt-3 text-sm text-slate-600">
-                      ICP classification is produced by enrichment and used to decide whether the email can stay segment-specific or must fall back to a generic draft.
-                    </div>
-                  </div>
-
-                  <div className="rounded-[24px] border border-border/70 bg-white p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">3. Generate Email</div>
-                    <div className="mt-3 rounded-[20px] border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-950">
-                      This email is generated to convert enriched company signals into personalized outbound outreach. Signal-grounded emails are expected to outperform generic templates because they reference verifiable company context.
-                    </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-[18px] bg-slate-50/80 p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Generation mode</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">
-                          {emailGenerationMetadata?.generation_mode ?? selectedState.emailSource?.generation_mode ?? "pending"}
-                        </div>
-                      </div>
-                      <div className="rounded-[18px] bg-slate-50/80 p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Generated at</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">
-                          {selectedState.emailGeneratedAt ? formatTimestamp(selectedState.emailGeneratedAt) : "Not generated yet"}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <DetailRow label="Prospect ID" value={emailGenerationMetadata?.prospect_id ?? selectedProspect.id} />
-                      <DetailRow label="Thread ID" value={emailGenerationMetadata?.thread_id ?? detailIdentity.threadId} />
-                      <DetailRow label="ICP segment" value={emailGenerationMetadata?.icp_segment ?? selectedState.qualification?.segment ?? "Pending"} />
-                      <DetailRow
-                        label="ICP confidence"
-                        value={
-                          typeof emailGenerationMetadata?.icp_confidence === "number"
-                            ? emailGenerationMetadata.icp_confidence.toFixed(2)
-                            : selectedState.qualification
-                              ? selectedState.qualification.confidence.toFixed(2)
-                              : "n/a"
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">4. Approve / Edit Email: subject</label>
-                    <Input
-                      value={selectedState.emailSubject}
-                      onChange={(event) =>
-                        updateSelectedState((current) => ({ ...current, emailSubject: event.target.value, emailApproved: false }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">4. Approve / Edit Email: body</label>
-                    <textarea
-                      value={selectedState.emailText}
-                      onChange={(event) =>
-                        updateSelectedState((current) => ({ ...current, emailText: event.target.value, emailApproved: false }))
-                      }
-                      className="min-h-[96px] w-full rounded-[22px] border border-border/70 bg-white px-4 py-3 text-sm shadow-sm outline-none ring-0 transition focus:border-ring"
-                    />
-                  </div>
-                  {emailWarning ? (
-                    <div className="rounded-[22px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                      <div className="font-semibold">Low-confidence fallback</div>
-                      <div className="mt-1">{emailWarning}</div>
-                    </div>
-                  ) : null}
-                  <div className="rounded-[24px] border border-border/70 bg-slate-50/80 p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Email Source</div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <DetailRow label="Used enrichment data" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_enrichment_data)} />} />
-                      <DetailRow label="Used ICP segment" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_icp_segment)} />} />
-                      <DetailRow label="Used AI maturity score" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_ai_maturity_score)} />} />
-                      <DetailRow label="Used competitor gap brief" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_competitor_gap_brief)} />} />
-                      <DetailRow label="Used style_guide.md" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_style_guide)} />} />
-                      <DetailRow label="Used email_sequences" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_email_sequences)} />} />
-                      <DetailRow label="Used case studies" value={<BooleanBadge value={Boolean(selectedState.emailSource?.used_case_studies)} />} />
-                      <DetailRow label="Pitch language hint" value={selectedState.emailSource?.pitch_language_hint ?? "n/a"} />
-                    </div>
-                    <div className="mt-4 rounded-[20px] bg-white p-4">
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Signals used</div>
-                      <div className="mt-2 text-sm text-slate-700">
-                        {(selectedState.emailSource?.signals_used ?? []).length > 0
-                          ? (selectedState.emailSource?.signals_used ?? []).join(", ")
-                          : "None detected. Generic fallback language is in use."}
-                      </div>
-                      <div className="mt-3 text-xs text-slate-500">
-                        Tracked signals: funding, hiring, layoffs, leadership change, AI maturity.
-                      </div>
-                    </div>
-                    <div className="mt-4 rounded-[20px] bg-white p-4">
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Loaded seed files</div>
-                      <div className="mt-3 grid gap-2 md:grid-cols-2">
-                        {["style_guide.md", "email_sequences/cold.md", "case_studies.md", "sales_deck_notes.md"].map((file) => (
-                          <div key={file} className="flex items-center justify-between gap-3 rounded-[16px] border border-border/70 px-3 py-2 text-sm">
-                            <span className="text-slate-700">{file}</span>
-                            <BooleanBadge value={Boolean((selectedState.emailSource?.seed_files_loaded ?? {})[file])} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Reply text for emergency manual fallback</label>
-                    <textarea
-                      value={selectedState.replyText}
-                      onChange={(event) => updateSelectedState((current) => ({ ...current, replyText: event.target.value }))}
-                      className="min-h-[80px] w-full rounded-[22px] border border-border/70 bg-white px-4 py-3 text-sm shadow-sm outline-none ring-0 transition focus:border-ring"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">Booking ID</label>
-                    <Input value={selectedState.bookingId} onChange={(event) => updateSelectedState((current) => ({ ...current, bookingId: event.target.value }))} />
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <Button type="button" className="gap-2" onClick={runEnrichment} disabled={selectedState.enrichmentLoading}>
-                      {selectedState.enrichmentLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      1. Run Enrichment
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="gap-2"
-                      onClick={generateEmail}
-                      disabled={!enrichmentReady || !qualificationReady || selectedState.prospectActionLoading === "generate-email"}
-                    >
-                      {selectedState.prospectActionLoading === "generate-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      3. Generate Email
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="gap-2"
-                      onClick={() => approveEmail(true)}
-                      disabled={!emailGenerated || emailApproved || selectedState.prospectActionLoading === "approve-email"}
-                    >
-                      {selectedState.prospectActionLoading === "approve-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                      4. Approve Email
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="gap-2"
-                      onClick={sendOutreach}
-                      disabled={!emailSendReady || selectedState.prospectActionLoading === "send-email"}
-                    >
-                      {selectedState.prospectActionLoading === "send-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                      5. Send Email ({emailProvider ?? "provider"})
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="gap-2"
-                      onClick={() => approveEmail(false)}
-                      disabled={!emailGenerated || !emailApproved || selectedState.prospectActionLoading === "unapprove-email"}
-                    >
-                      {selectedState.prospectActionLoading === "unapprove-email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                      Reset Approval
-                    </Button>
-                    <Button type="button" variant="secondary" className="gap-2" onClick={processReply} disabled={selectedState.prospectActionLoading === "reply"}>
-                      {selectedState.prospectActionLoading === "reply" ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquareReply className="h-4 w-4" />}
-                      Process Reply ({selectedState.replyText.trim() ? "manual" : selectedState.lastReplyText ? "stored webhook" : "manual"})
-                    </Button>
-                    <Button type="button" variant="secondary" className="gap-2" onClick={sendBookingLink} disabled={outboundPaused || selectedState.prospectActionLoading === "booking-link"}>
-                      {selectedState.prospectActionLoading === "booking-link" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                      Send Booking Link
-                    </Button>
-                    <Button type="button" variant="secondary" className="gap-2" onClick={syncBooking} disabled={selectedState.prospectActionLoading === "booking"}>
-                      {selectedState.prospectActionLoading === "booking" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarCheck2 className="h-4 w-4" />}
-                      Sync Booking
-                    </Button>
-                    <Button type="button" variant="secondary" className="gap-2" onClick={refreshHubSpotStatus} disabled={selectedState.prospectActionLoading === "hubspot"}>
-                      {selectedState.prospectActionLoading === "hubspot" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                      Refresh CRM
-                    </Button>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
-                      <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Last message ID</div>
-                      <div className="mt-2 break-all text-sm font-semibold text-slate-900">{selectedState.lastMessageId ?? "Not sent yet"}</div>
-                    </div>
-                    <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
-                      <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Thread continuity</div>
-                      <div className="mt-2 text-sm font-semibold text-slate-900">{detailIdentity.threadId}</div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[24px] border border-border/70 bg-slate-50/80 p-5">
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Received Reply</div>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
-                      <div className="rounded-[18px] bg-white p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Source</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">{selectedState.lastReplySource ?? "No reply stored"}</div>
-                      </div>
-                      <div className="rounded-[18px] bg-white p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Received at</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">{formatTimestamp(selectedState.lastReplyReceivedAt)}</div>
-                      </div>
-                      <div className="rounded-[18px] bg-white p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Intent</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">
-                          {selectedState.replyIntent ?? "Pending"}
-                          {selectedState.replyIntentConfidence !== null ? ` (${selectedState.replyIntentConfidence.toFixed(2)})` : ""}
-                        </div>
-                      </div>
-                      <div className="rounded-[18px] bg-white p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Next action</div>
-                        <div className="mt-2 text-sm font-semibold text-slate-900">{String(selectedState.replyNextAction?.type ?? "Pending").replace(/_/g, " ")}</div>
-                      </div>
-                    </div>
-                    <div className="mt-4 rounded-[18px] bg-white p-4">
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Reply subject</div>
-                      <div className="mt-2 text-sm text-slate-700">{selectedState.lastReplySubject ?? "n/a"}</div>
-                    </div>
-                    <div className="mt-4 rounded-[18px] bg-white p-4">
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Reply body</div>
-                      <div className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{selectedState.lastReplyText ?? "No webhook reply has been stored yet."}</div>
-                    </div>
-                    {selectedState.replyIntentReason ? (
-                      <div className="mt-4 text-sm text-slate-600">Intent reason: {selectedState.replyIntentReason}</div>
+                    {selectedState.enrichmentError ? (
+                      <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{selectedState.enrichmentError}</div>
                     ) : null}
-                    {selectedState.replyNextAction?.draft ? (
-                      <div className="mt-4 rounded-[18px] border border-border/70 bg-white p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Suggested follow-up draft</div>
-                        <div className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{String(selectedState.replyNextAction.draft)}</div>
-                      </div>
+                    {selectedState.actionsError ? (
+                      <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{selectedState.actionsError}</div>
                     ) : null}
-                  </div>
-
-                  {selectedState.enrichmentError ? (
-                    <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-                      <div className="font-semibold">Enrichment Error</div>
-                      <div className="mt-1">{selectedState.enrichmentError}</div>
-                    </div>
-                  ) : null}
-                  {selectedState.actionsError ? (
-                    <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-                      <div className="font-semibold">Action Error</div>
-                      <div className="mt-1">{selectedState.actionsError}</div>
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-              <Card className="min-w-0 border border-border/70 bg-white/90">
-                <CardHeader className="border-b border-border/60 pb-4">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Database className="h-5 w-5 text-primary" />
-                        Hiring Signal Brief
-                      </CardTitle>
-                      <CardDescription>Artifact-backed signal cards, with raw JSON available for validation.</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3 rounded-full border border-border/70 bg-slate-50 px-4 py-2">
-                      <span className="text-sm text-slate-600">View Raw JSON</span>
-                      <Switch checked={selectedState.showRawJson} onCheckedChange={(checked) => updateSelectedState((current) => ({ ...current, showRawJson: checked }))} />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {hiringBrief ? (
-                    <>
-                      <div className="grid gap-4 xl:grid-cols-2">
-                        <SignalCard title="Funding signal" confidence={hiringBrief?.funding?._confidence}>
-                          <div>Funded: {String(hiringBrief?.funding?.funded)}</div>
-                          <div>Round: {String(hiringBrief?.funding?.round_type ?? hiringBrief?.funding?.last_funding_type ?? "n/a")}</div>
-                          <div>Funding recency: {String(hiringBrief?.funding?.days_ago ?? "n/a")} days ago</div>
-                        </SignalCard>
-                        <SignalCard title="Job-post velocity" confidence={hiringBrief?.jobs?._confidence}>
-                          <div>Engineering roles: {String(hiringBrief?.jobs?.engineering_roles ?? 0)}</div>
-                          <div>AI/ML roles: {String(hiringBrief?.jobs?.ai_ml_roles ?? 0)}</div>
-                          <div>Velocity (60d): {String(hiringBrief?.jobs?.velocity_60d ?? 0)}</div>
-                        </SignalCard>
-                        <SignalCard title="Layoffs" confidence={hiringBrief?.layoffs?._confidence}>
-                          <div>Detected: {String(hiringBrief?.layoffs?.had_layoff ?? false)}</div>
-                          <div>Recency: {String(hiringBrief?.layoffs?.days_ago ?? "n/a")} days ago</div>
-                        </SignalCard>
-                        <SignalCard title="Leadership" confidence={hiringBrief?.leadership_change?._confidence}>
-                          <div>Detected: {String(hiringBrief?.leadership_change?.new_leader_detected ?? false)}</div>
-                          <div>Role: {String(hiringBrief?.leadership_change?.role ?? "n/a")}</div>
-                        </SignalCard>
-                      </div>
-
-                      <div className="rounded-[24px] border border-border/70 bg-slate-50/70 p-5">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                          <BrainCircuit className="h-4 w-4 text-primary" />
-                          AI maturity
-                        </div>
-                        <div className="mt-4 grid gap-4 md:grid-cols-3">
-                          <div className="rounded-[20px] bg-white p-4">
-                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Score</div>
-                            <div className="mt-2 text-3xl font-semibold text-slate-950">{String(hiringBrief?.ai_maturity?.score ?? 0)}</div>
-                          </div>
-                          <div className="rounded-[20px] bg-white p-4">
-                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Confidence</div>
-                            <div className="mt-2">
-                              <ConfidenceBadge value={hiringBrief?.ai_maturity?._confidence} />
-                            </div>
-                          </div>
-                          <div className="rounded-[20px] bg-white p-4">
-                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Tech stack</div>
-                            <div className="mt-2 text-sm text-slate-700">{(hiringBrief?.tech_stack?.technologies ?? []).join(", ") || "n/a"}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {selectedState.showRawJson ? (
-                        <details open className="rounded-[24px] border border-border/80 bg-slate-950 p-5 text-slate-100">
-                          <summary className="cursor-pointer text-sm font-medium">hiring_signal_brief.json</summary>
-                          <pre className="mt-4 overflow-auto text-xs">{JSON.stringify(hiringBrief, null, 2)}</pre>
-                        </details>
-                      ) : null}
-                    </>
-                  ) : (
-                    <div className="rounded-[24px] border border-dashed border-border/80 bg-slate-50/70 p-8 text-sm text-slate-500">
-                      Run enrichment to generate the current hiring signal brief artifact for this prospect.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="min-w-0 border border-border/70 bg-white/90">
-                <CardHeader className="border-b border-border/60 pb-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <GitCompare className="h-5 w-5 text-primary" />
-                    Competitor Gap Brief
-                  </CardTitle>
-                  <CardDescription>Peer context, percentile ranking, and actionable gaps framed for live sales conversations.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {gapBrief ? (
-                    <>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="rounded-[24px] border border-border/80 bg-slate-950 p-5 text-white">
-                          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Prospect percentile</div>
-                          <div className="mt-3 text-5xl font-semibold">{String(gapBrief?.prospect_percentile ?? 0)}th</div>
-                          <div className="mt-2 text-sm text-slate-300">Positioned against peers with overlapping industry and size signals.</div>
-                        </div>
-                        <div className="rounded-[24px] border border-border/80 bg-slate-50/80 p-5">
-                          <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Peer set</div>
-                          <div className="mt-3 text-3xl font-semibold text-slate-900">{String(gapBrief?.meta?.peer_count ?? gapBrief?.peers?.length ?? 0)}</div>
-                          <div className="mt-2 text-sm text-slate-600">Comparable companies used to frame the current gap brief.</div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900">Peer companies</div>
-                        <div className="mt-4 grid gap-3">
-                          {(gapBrief?.peers ?? []).slice(0, 10).map((peer: any, index: number) => (
-                            <div key={`${peer?.name ?? "peer"}-${index}`} className="grid gap-3 rounded-[20px] border border-border/70 bg-white p-4 md:grid-cols-[1fr_auto_auto] md:items-center">
-                              <div>
-                                <div className="font-medium text-slate-900">{String(peer?.name ?? `Peer ${index + 1}`)}</div>
-                                <div className="mt-1 text-sm text-slate-500">{(peer?.industries ?? []).join(", ") || "Industry not available"}</div>
-                              </div>
-                              <div className="text-sm text-slate-600">Employees: {String(peer?.num_employees ?? "n/a")}</div>
-                              <Badge className="border-none bg-slate-100 text-slate-700">AI maturity {String(peer?.ai_maturity?.score ?? 0)}</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900">Specific gaps</div>
-                        <div className="mt-4 grid gap-3">
-                          {(gapBrief?.gaps ?? []).slice(0, 3).map((gap: any, index: number) => (
-                            <div key={`${gap?.gap ?? "gap"}-${index}`} className="rounded-[22px] border border-border/70 bg-slate-50/80 p-5">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="text-base font-semibold text-slate-900">{String(gap?.gap ?? `Gap ${index + 1}`).replace(/_/g, " ")}</div>
-                                <ConfidenceBadge value={gap?.confidence} />
-                              </div>
-                              <div className="mt-3 text-sm text-slate-600">Top-quartile prevalence: {String(gap?.evidence?.top_quartile_prevalence ?? "n/a")}</div>
-                              <div className="mt-1 text-sm text-slate-600">Sample peers: {(gap?.evidence?.sample_peers ?? []).join(", ") || "n/a"}</div>
-                              <div className="mt-4 rounded-[18px] bg-white p-4 text-sm text-slate-700">
-                                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Pitch hook</div>
-                                <div className="mt-2 leading-6">{String(gap?.pitch_hook ?? "No pitch hook available")}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {selectedState.showRawJson ? (
-                        <details open className="rounded-[24px] border border-border/80 bg-slate-950 p-5 text-slate-100">
-                          <summary className="cursor-pointer text-sm font-medium">competitor_gap_brief.json</summary>
-                          <pre className="mt-4 overflow-auto text-xs">{JSON.stringify(gapBrief, null, 2)}</pre>
-                        </details>
-                      ) : null}
-                    </>
-                  ) : (
-                    <div className="rounded-[24px] border border-dashed border-border/80 bg-slate-50/70 p-8 text-sm text-slate-500">
-                      Run enrichment to generate the current competitor gap artifact for this prospect.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-              <Card className="min-w-0 border border-border/70 bg-white/90">
-                <CardHeader className="border-b border-border/60 pb-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <Flame className="h-5 w-5 text-primary" />
-                    Conversion Timeline
-                  </CardTitle>
-                  <CardDescription>Track the full lifecycle from enrichment to booking sync on one screen.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {timeline.map((event) => (
-                    <div
-                      key={event.type}
-                      className={cn("rounded-[24px] border p-5 transition-colors", event.complete ? "border-emerald-200 bg-emerald-50/80" : "border-border/70 bg-slate-50/70")}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="text-sm font-semibold text-slate-900">{event.title}</div>
-                          <div className="mt-2 text-sm leading-6 text-slate-600">{event.description}</div>
-                        </div>
-                        <Badge className={cn("border-none", event.complete ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700")}>
-                          {event.complete ? "complete" : "pending"}
-                        </Badge>
-                      </div>
-                      <div className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500">{event.complete ? formatTimestamp(event.timestamp) : "Waiting"}</div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card className="min-w-0 border border-border/70 bg-white/90">
-                <CardHeader className="border-b border-border/60 pb-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-primary" />
-                    Action Status
-                  </CardTitle>
-                  <CardDescription>Surface the concrete identifiers and CRM state a sales operator needs.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
-                      <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Thread ID</div>
-                      <div className="mt-2 text-sm font-semibold text-slate-900">{detailIdentity.threadId}</div>
-                    </div>
-                    <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
-                      <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Last message ID</div>
-                      <div className="mt-2 break-all text-sm font-semibold text-slate-900">{selectedState.lastMessageId ?? "n/a"}</div>
-                    </div>
-                    <div className="rounded-[22px] border border-border/70 bg-slate-50/70 p-4">
-                      <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Backend</div>
-                      <div className="mt-2 text-sm font-semibold text-slate-900">{backendUrl ?? "loading..."}</div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[24px] border border-border/70 bg-white p-5">
-                      <div className="text-sm font-semibold text-slate-900">HubSpot sync</div>
-                      <div className="mt-2 text-sm text-slate-600">{selectedState.hubspotResult ? "Latest CRM sync completed." : "No CRM sync recorded yet."}</div>
-                      <div className="mt-4 space-y-2 text-sm text-slate-600">
-                        <div>Status: {selectedState.hubspotResult?.status ?? "n/a"}</div>
-                        <div>Contact ID: {selectedState.hubspotResult?.data?.hubspot?.id ?? selectedState.hubspotResult?.data?.crm?.hubspot?.id ?? "n/a"}</div>
-                        <div>Segment: {selectedState.qualification?.segment ?? "Pending"}</div>
-                        <div>Thread ID: {detailIdentity.threadId}</div>
-                      </div>
-                    </div>
-                    <div className="rounded-[24px] border border-border/70 bg-white p-5">
-                      <div className="text-sm font-semibold text-slate-900">Booking Artifact State</div>
-                      <div className="mt-4">
-                        {selectedState.bookingArtifact && selectedState.bookingArtifact.status === "confirmed" ? (
-                          <BookingArtifactCard artifact={selectedState.bookingArtifact} />
-                        ) : (
-                          <div className="rounded-[22px] border border-dashed border-border/70 bg-slate-50/70 p-4 text-center text-sm text-slate-500">
-                            No confirmed booking yet.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         )}
@@ -2095,7 +1641,10 @@ export default function Page() {
               form={newProspect}
               loading={creatingProspect}
               error={createProspectError}
+              suggestions={companySuggestions}
+              suggestionsLoading={companySuggestionsLoading}
               onChange={updateNewProspect}
+              onPickCompany={pickSuggestedCompany}
               onSubmit={createProspectRecord}
             />
             <Card className="border border-border/70 bg-white/90">
@@ -2153,7 +1702,6 @@ export default function Page() {
             </Card>
           </div>
         )}
-      </div>
       </div>
     </main>
   );

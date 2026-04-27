@@ -1,5 +1,7 @@
 # τ² retail baseline
 
+The baseline was provided by the program to ensure consistent comparison. We do not re-run the baseline locally; we compare our single-trial system evaluation against the provided reference.
+
 ## Summary
 - evaluated simulations: 150
 - infra errors: 0

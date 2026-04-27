@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from agent.enrichment.briefs import produce_hiring_signal_brief
+from agent.enrichment.crunchbase import search_companies
 from agent.enrichment.pipeline import run_hiring_signal_enrichment
 from agent.enrichment.icp import classify_icp
 from agent.email_generator import generate_outreach_email
@@ -218,7 +219,7 @@ class ProspectEnrichmentRequest(BaseModel):
 class ProspectCreateRequest(BaseModel):
     company: str = Field(..., min_length=1)
     prospect_name: str = Field(..., min_length=1)
-    email: str = Field(..., min_length=3)
+    email: Optional[str] = None
     domain: Optional[str] = None
     phone: Optional[str] = None
     use_playwright: bool = False
@@ -1266,15 +1267,22 @@ def list_prospects_route():
     return {"prospects": load_prospects()}
 
 
+@app.get("/companies")
+def list_companies_route(q: str = "", limit: int = 20):
+    safe_limit = max(1, min(limit, 50))
+    return {"companies": search_companies(q, limit=safe_limit)}
+
+
 @app.post("/prospects")
 def create_prospect_route(payload: ProspectCreateRequest):
     company = payload.company.strip()
     prospect_name = payload.prospect_name.strip()
-    email = payload.email.strip()
     domain = payload.domain.strip() if isinstance(payload.domain, str) and payload.domain.strip() else None
     prospect_id = company.casefold().replace(".", "").replace("&", "and")
     prospect_id = "".join(ch if ch.isalnum() else "_" for ch in prospect_id)
     prospect_id = "_".join(part for part in prospect_id.split("_") if part) or "prospect"
+    email = payload.email.strip() if isinstance(payload.email, str) and payload.email.strip() else _synthetic_email(company, prospect_id)
+    phone = payload.phone.strip() if isinstance(payload.phone, str) and payload.phone.strip() else _synthetic_phone(prospect_id)
 
     record = {
         "id": prospect_id,
@@ -1282,7 +1290,7 @@ def create_prospect_route(payload: ProspectCreateRequest):
         "company": company,
         "email": email,
         "domain": domain,
-        "phone": payload.phone,
+        "phone": phone,
         "thread_id": build_thread_id(company),
         "lifecycle_stage": "New",
         "email_subject": f"Quick signal review for {company}",
@@ -1296,6 +1304,16 @@ def create_prospect_route(payload: ProspectCreateRequest):
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"status": "created", "prospect": created}
+
+
+def _synthetic_email(company: str, prospect_id: str) -> str:
+    domain_slug = "".join(ch for ch in company.casefold() if ch.isalnum()) or prospect_id
+    return f"{prospect_id}@{domain_slug}.example.com"
+
+
+def _synthetic_phone(prospect_id: str) -> str:
+    digits = "".join(str((ord(ch) % 10)) for ch in prospect_id)[:9].ljust(9, "0")
+    return f"+2519{digits}"
 
 
 @app.post("/webhook")

@@ -69,6 +69,78 @@
       "p50_latency_ms": 0,
       "p95_latency_ms": 0,
       "run_at": "2026-04-27T06:36:41.717794Z"
+    },
+    {
+      "partition": "dev",
+      "model": "qwen/qwen3-30b-a3b",
+      "n_tasks": 3,
+      "n_trials": 1,
+      "pass_at_1": 0.6667,
+      "trial_scores": [
+        0.6667
+      ],
+      "ci_95": [
+        0.6667,
+        0.6667
+      ],
+      "cost_per_run_usd": 0.0002,
+      "p50_latency_ms": 0,
+      "p95_latency_ms": 0,
+      "provided_baseline": {
+        "name": "program_provided_tau2_retail_baseline",
+        "evaluated_simulations": 150,
+        "total_tasks": 30,
+        "trials_per_task": 5,
+        "pass_at_1": 0.7267,
+        "ci_95": [
+          0.6504,
+          0.7917
+        ],
+        "avg_agent_cost_usd": 0.0199,
+        "p50_latency_s": 105.9521,
+        "p95_latency_s": 551.6491
+      },
+      "our_system_score": 0.6667,
+      "baseline_score": 0.7267,
+      "delta_vs_baseline": -0.06,
+      "report_text": "The baseline was provided by the program to ensure consistent comparison. We ran our system once against \u03c4\u00b2-Bench retail tasks and compared our pass@1 to the provided baseline of 0.7267.",
+      "run_at": "2026-04-27T08:10:33.979225Z"
+    },
+    {
+      "partition": "dev",
+      "model": "qwen/qwen3-30b-a3b",
+      "n_tasks": 3,
+      "n_trials": 1,
+      "pass_at_1": 0.6667,
+      "trial_scores": [
+        0.6667
+      ],
+      "ci_95": [
+        0.6667,
+        0.6667
+      ],
+      "cost_per_run_usd": 0.0002,
+      "p50_latency_ms": 0,
+      "p95_latency_ms": 0,
+      "provided_baseline": {
+        "name": "program_provided_tau2_retail_baseline",
+        "evaluated_simulations": 150,
+        "total_tasks": 30,
+        "trials_per_task": 5,
+        "pass_at_1": 0.7267,
+        "ci_95": [
+          0.6504,
+          0.7917
+        ],
+        "avg_agent_cost_usd": 0.0199,
+        "p50_latency_s": 105.9521,
+        "p95_latency_s": 551.6491
+      },
+      "our_system_score": 0.6667,
+      "baseline_score": 0.7267,
+      "delta_vs_baseline": -0.06,
+      "report_text": "The baseline was provided by the program to ensure consistent comparison. We ran our system once against \u03c4\u00b2-Bench retail tasks and compared our pass@1 to the provided baseline of 0.7267.",
+      "run_at": "2026-04-27T08:19:43.083641Z"
     }
   ]
 }

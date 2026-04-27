@@ -505,22 +505,6 @@
         "documentation": {}
     },
     {
-        "label": "datetime",
-        "importPath": "datetime",
-        "description": "datetime",
-        "isExtraImport": true,
-        "detail": "datetime",
-        "documentation": {}
-    },
-    {
-        "label": "timezone",
-        "importPath": "datetime",
-        "description": "datetime",
-        "isExtraImport": true,
-        "detail": "datetime",
-        "documentation": {}
-    },
-    {
         "label": "date",
         "importPath": "datetime",
         "description": "datetime",
@@ -810,30 +794,6 @@
     },
     {
         "label": "Any",
-        "importPath": "typing",
-        "description": "typing",
-        "isExtraImport": true,
-        "detail": "typing",
-        "documentation": {}
-    },
-    {
-        "label": "Any",
-        "importPath": "typing",
-        "description": "typing",
-        "isExtraImport": true,
-        "detail": "typing",
-        "documentation": {}
-    },
-    {
-        "label": "Iterable",
-        "importPath": "typing",
-        "description": "typing",
-        "isExtraImport": true,
-        "detail": "typing",
-        "documentation": {}
-    },
-    {
-        "label": "Optional",
         "importPath": "typing",
         "description": "typing",
         "isExtraImport": true,
@@ -1585,6 +1545,46 @@
         "documentation": {}
     },
     {
+        "label": "search_companies",
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "isExtraImport": true,
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "is_recently_funded",
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "isExtraImport": true,
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "load_crunchbase_dataset",
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "isExtraImport": true,
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "normalize_company_name",
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "isExtraImport": true,
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "ensure_compat_json_dataset",
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "isExtraImport": true,
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
         "label": "run_hiring_signal_enrichment",
         "importPath": "agent.enrichment.pipeline",
         "description": "agent.enrichment.pipeline",
@@ -1722,14 +1722,6 @@
         "documentation": {}
     },
     {
-        "label": "deque",
-        "importPath": "collections",
-        "description": "collections",
-        "isExtraImport": true,
-        "detail": "collections",
-        "documentation": {}
-    },
-    {
         "label": "statistics",
         "kind": 6,
         "isExtraImport": true,
@@ -1768,46 +1760,6 @@
         "description": "agent.bench_gate",
         "isExtraImport": true,
         "detail": "agent.bench_gate",
-        "documentation": {}
-    },
-    {
-        "label": "is_recently_funded",
-        "importPath": "agent.enrichment.crunchbase",
-        "description": "agent.enrichment.crunchbase",
-        "isExtraImport": true,
-        "detail": "agent.enrichment.crunchbase",
-        "documentation": {}
-    },
-    {
-        "label": "load_crunchbase_dataset",
-        "importPath": "agent.enrichment.crunchbase",
-        "description": "agent.enrichment.crunchbase",
-        "isExtraImport": true,
-        "detail": "agent.enrichment.crunchbase",
-        "documentation": {}
-    },
-    {
-        "label": "normalize_company_name",
-        "importPath": "agent.enrichment.crunchbase",
-        "description": "agent.enrichment.crunchbase",
-        "isExtraImport": true,
-        "detail": "agent.enrichment.crunchbase",
-        "documentation": {}
-    },
-    {
-        "label": "ensure_compat_json_dataset",
-        "importPath": "agent.enrichment.crunchbase",
-        "description": "agent.enrichment.crunchbase",
-        "isExtraImport": true,
-        "detail": "agent.enrichment.crunchbase",
-        "documentation": {}
-    },
-    {
-        "label": "dataclass",
-        "importPath": "dataclasses",
-        "description": "dataclasses",
-        "isExtraImport": true,
-        "detail": "dataclasses",
         "documentation": {}
     },
     {
@@ -1885,30 +1837,19 @@
         "documentation": {}
     },
     {
-        "label": "shutil",
-        "kind": 6,
+        "label": "PROVIDED_BASELINE",
+        "importPath": "eval.tau2_harness",
+        "description": "eval.tau2_harness",
         "isExtraImport": true,
-        "importPath": "shutil",
-        "description": "shutil",
-        "detail": "shutil",
+        "detail": "eval.tau2_harness",
         "documentation": {}
     },
     {
-        "label": "subprocess",
-        "kind": 6,
+        "label": "run_eval",
+        "importPath": "eval.tau2_harness",
+        "description": "eval.tau2_harness",
         "isExtraImport": true,
-        "importPath": "subprocess",
-        "description": "subprocess",
-        "detail": "subprocess",
-        "documentation": {}
-    },
-    {
-        "label": "uuid",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "uuid",
-        "description": "uuid",
-        "detail": "uuid",
+        "detail": "eval.tau2_harness",
         "documentation": {}
     },
     {
@@ -1926,6 +1867,15 @@
         "importPath": "uvicorn",
         "description": "uvicorn",
         "detail": "uvicorn",
+        "documentation": {}
+    },
+    {
+        "label": "subprocess",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "subprocess",
+        "description": "subprocess",
+        "detail": "subprocess",
         "documentation": {}
     },
     {
@@ -2064,14 +2014,6 @@
         "description": "agent.qualification.icp_classifier",
         "isExtraImport": true,
         "detail": "agent.qualification.icp_classifier",
-        "documentation": {}
-    },
-    {
-        "label": "run_eval",
-        "importPath": "eval.tau2_harness",
-        "description": "eval.tau2_harness",
-        "isExtraImport": true,
-        "detail": "eval.tau2_harness",
         "documentation": {}
     },
     {
@@ -2418,6 +2360,15 @@
         "importPath": "agent.enrichment.crunchbase",
         "description": "agent.enrichment.crunchbase",
         "peekOfCode": "def lookup_company(name: str) -> dict[str, Any] | None:\n    normalized = normalize_company_name(name)\n    if not normalized:\n        return None\n    dataset_path = _resolve_dataset_path()\n    cache_key = f\"{Path(dataset_path).name}:{normalized}\"\n    try:\n        from .cache import get_cache, set_cache\n    except Exception:  # pragma: no cover\n        get_cache = None  # type: ignore[assignment]",
+        "detail": "agent.enrichment.crunchbase",
+        "documentation": {}
+    },
+    {
+        "label": "search_companies",
+        "kind": 2,
+        "importPath": "agent.enrichment.crunchbase",
+        "description": "agent.enrichment.crunchbase",
+        "peekOfCode": "def search_companies(query: str = \"\", *, limit: int = 20) -> list[dict[str, Any]]:\n    dataset_path = _resolve_dataset_path()\n    records = load_crunchbase_dataset(dataset_path)\n    normalized_query = normalize_company_name(query)\n    matches: list[dict[str, Any]] = []\n    for record in records:\n        name = _extract_company_name(record)\n        if not name:\n            continue\n        normalized_name = normalize_company_name(name)",
         "detail": "agent.enrichment.crunchbase",
         "documentation": {}
     },
@@ -2948,7 +2899,7 @@
         "kind": 6,
         "importPath": "agent.main",
         "description": "agent.main",
-        "peekOfCode": "class ProspectEnrichmentRequest(BaseModel):\n    email: str = Field(..., min_length=3)\n    company_name: str = Field(..., min_length=1)\n    phone: Optional[str] = None\n    domain: Optional[str] = None\n    leadership_sources: list[dict[str, Any]] = Field(default_factory=list)\nclass ProspectCreateRequest(BaseModel):\n    company: str = Field(..., min_length=1)\n    prospect_name: str = Field(..., min_length=1)\n    email: str = Field(..., min_length=3)",
+        "peekOfCode": "class ProspectEnrichmentRequest(BaseModel):\n    email: str = Field(..., min_length=3)\n    company_name: str = Field(..., min_length=1)\n    phone: Optional[str] = None\n    domain: Optional[str] = None\n    leadership_sources: list[dict[str, Any]] = Field(default_factory=list)\nclass ProspectCreateRequest(BaseModel):\n    company: str = Field(..., min_length=1)\n    prospect_name: str = Field(..., min_length=1)\n    email: Optional[str] = None",
         "detail": "agent.main",
         "documentation": {}
     },
@@ -2957,7 +2908,7 @@
         "kind": 6,
         "importPath": "agent.main",
         "description": "agent.main",
-        "peekOfCode": "class ProspectCreateRequest(BaseModel):\n    company: str = Field(..., min_length=1)\n    prospect_name: str = Field(..., min_length=1)\n    email: str = Field(..., min_length=3)\n    domain: Optional[str] = None\n    phone: Optional[str] = None\n    use_playwright: bool = False\n    peers_limit: int = Field(10, ge=1, le=25)\nclass HiringBriefRequest(BaseModel):\n    company_name: str = Field(..., min_length=1)",
+        "peekOfCode": "class ProspectCreateRequest(BaseModel):\n    company: str = Field(..., min_length=1)\n    prospect_name: str = Field(..., min_length=1)\n    email: Optional[str] = None\n    domain: Optional[str] = None\n    phone: Optional[str] = None\n    use_playwright: bool = False\n    peers_limit: int = Field(10, ge=1, le=25)\nclass HiringBriefRequest(BaseModel):\n    company_name: str = Field(..., min_length=1)",
         "detail": "agent.main",
         "documentation": {}
     },
@@ -3236,7 +3187,16 @@
         "kind": 2,
         "importPath": "agent.main",
         "description": "agent.main",
-        "peekOfCode": "def list_prospects_route():\n    return {\"prospects\": load_prospects()}\n@app.post(\"/prospects\")\ndef create_prospect_route(payload: ProspectCreateRequest):\n    company = payload.company.strip()\n    prospect_name = payload.prospect_name.strip()\n    email = payload.email.strip()\n    domain = payload.domain.strip() if isinstance(payload.domain, str) and payload.domain.strip() else None\n    prospect_id = company.casefold().replace(\".\", \"\").replace(\"&\", \"and\")\n    prospect_id = \"\".join(ch if ch.isalnum() else \"_\" for ch in prospect_id)",
+        "peekOfCode": "def list_prospects_route():\n    return {\"prospects\": load_prospects()}\n@app.get(\"/companies\")\ndef list_companies_route(q: str = \"\", limit: int = 20):\n    safe_limit = max(1, min(limit, 50))\n    return {\"companies\": search_companies(q, limit=safe_limit)}\n@app.post(\"/prospects\")\ndef create_prospect_route(payload: ProspectCreateRequest):\n    company = payload.company.strip()\n    prospect_name = payload.prospect_name.strip()",
+        "detail": "agent.main",
+        "documentation": {}
+    },
+    {
+        "label": "list_companies_route",
+        "kind": 2,
+        "importPath": "agent.main",
+        "description": "agent.main",
+        "peekOfCode": "def list_companies_route(q: str = \"\", limit: int = 20):\n    safe_limit = max(1, min(limit, 50))\n    return {\"companies\": search_companies(q, limit=safe_limit)}\n@app.post(\"/prospects\")\ndef create_prospect_route(payload: ProspectCreateRequest):\n    company = payload.company.strip()\n    prospect_name = payload.prospect_name.strip()\n    domain = payload.domain.strip() if isinstance(payload.domain, str) and payload.domain.strip() else None\n    prospect_id = company.casefold().replace(\".\", \"\").replace(\"&\", \"and\")\n    prospect_id = \"\".join(ch if ch.isalnum() else \"_\" for ch in prospect_id)",
         "detail": "agent.main",
         "documentation": {}
     },
@@ -3245,7 +3205,7 @@
         "kind": 2,
         "importPath": "agent.main",
         "description": "agent.main",
-        "peekOfCode": "def create_prospect_route(payload: ProspectCreateRequest):\n    company = payload.company.strip()\n    prospect_name = payload.prospect_name.strip()\n    email = payload.email.strip()\n    domain = payload.domain.strip() if isinstance(payload.domain, str) and payload.domain.strip() else None\n    prospect_id = company.casefold().replace(\".\", \"\").replace(\"&\", \"and\")\n    prospect_id = \"\".join(ch if ch.isalnum() else \"_\" for ch in prospect_id)\n    prospect_id = \"_\".join(part for part in prospect_id.split(\"_\") if part) or \"prospect\"\n    record = {\n        \"id\": prospect_id,",
+        "peekOfCode": "def create_prospect_route(payload: ProspectCreateRequest):\n    company = payload.company.strip()\n    prospect_name = payload.prospect_name.strip()\n    domain = payload.domain.strip() if isinstance(payload.domain, str) and payload.domain.strip() else None\n    prospect_id = company.casefold().replace(\".\", \"\").replace(\"&\", \"and\")\n    prospect_id = \"\".join(ch if ch.isalnum() else \"_\" for ch in prospect_id)\n    prospect_id = \"_\".join(part for part in prospect_id.split(\"_\") if part) or \"prospect\"\n    email = payload.email.strip() if isinstance(payload.email, str) and payload.email.strip() else _synthetic_email(company, prospect_id)\n    phone = payload.phone.strip() if isinstance(payload.phone, str) and payload.phone.strip() else _synthetic_phone(prospect_id)\n    record = {",
         "detail": "agent.main",
         "documentation": {}
     },
@@ -4087,38 +4047,11 @@
         "documentation": {}
     },
     {
-        "label": "TaskTrialRecord",
-        "kind": 6,
-        "importPath": "eval.run_baseline",
-        "description": "eval.run_baseline",
-        "peekOfCode": "class TaskTrialRecord:\n    task_id: str\n    trial: int\n    model: str\n    partition: str\n    passed: Optional[bool]\n    latency_ms: Optional[float]\n    tokens: Optional[int]\n    trace_id: str\n    timestamp: str",
-        "detail": "eval.run_baseline",
-        "documentation": {}
-    },
-    {
-        "label": "SubprocessResult",
-        "kind": 6,
-        "importPath": "eval.run_baseline",
-        "description": "eval.run_baseline",
-        "peekOfCode": "class SubprocessResult:\n    cmd: list[str]\n    returncode: int\n    output_tail: str\nclass SubprocessError(RuntimeError):\n    def __init__(self, *, cmd: list[str], returncode: int, output_tail: str):\n        super().__init__(f\"Command failed (exit {returncode}): {' '.join(cmd)}\")\n        self.cmd = cmd\n        self.returncode = returncode\n        self.output_tail = output_tail",
-        "detail": "eval.run_baseline",
-        "documentation": {}
-    },
-    {
-        "label": "SubprocessError",
-        "kind": 6,
-        "importPath": "eval.run_baseline",
-        "description": "eval.run_baseline",
-        "peekOfCode": "class SubprocessError(RuntimeError):\n    def __init__(self, *, cmd: list[str], returncode: int, output_tail: str):\n        super().__init__(f\"Command failed (exit {returncode}): {' '.join(cmd)}\")\n        self.cmd = cmd\n        self.returncode = returncode\n        self.output_tail = output_tail\ndef _run_subprocess(cmd: list[str], cwd: Path, env: dict[str, str]) -> SubprocessResult:\n    try:\n        process = subprocess.Popen(\n            cmd,",
-        "detail": "eval.run_baseline",
-        "documentation": {}
-    },
-    {
-        "label": "run_tau2_eval",
+        "label": "build_baseline_payload",
         "kind": 2,
         "importPath": "eval.run_baseline",
         "description": "eval.run_baseline",
-        "peekOfCode": "def run_tau2_eval(\n    *,\n    tau2_repo: Path,\n    domain: str,\n    agent_llm: str,\n    user_llm: str,\n    num_tasks: int,\n    num_trials: int,\n    save_to: str,\n    task_split_name: str,",
+        "peekOfCode": "def build_baseline_payload() -> dict[str, object]:\n    return {\n        \"message\": (\n            \"The baseline was provided by the program to ensure consistent comparison. \"\n            \"We do not run the baseline benchmark locally.\"\n        ),\n        \"provided_baseline\": dict(PROVIDED_BASELINE),\n    }\ndef main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Write the program-provided τ² retail baseline reference\")",
         "detail": "eval.run_baseline",
         "documentation": {}
     },
@@ -4127,16 +4060,16 @@
         "kind": 2,
         "importPath": "eval.run_baseline",
         "description": "eval.run_baseline",
-        "peekOfCode": "def main(argv: Optional[list[str]] = None) -> int:\n    if sys.version_info < (3, 10):\n        raise RuntimeError(\"This script requires Python 3.10+\")\n    if sys.version_info < (3, 11):\n        print(\"Warning: Python 3.11+ is recommended.\", file=sys.stderr)\n    parser = argparse.ArgumentParser(description=\"Run a tau2 baseline via subprocess (uv).\")\n    parser.add_argument(\"--tau2-repo\", type=Path, required=True, help=\"Path to a local tau2-bench repo checkout.\")\n    parser.add_argument(\"--output-dir\", type=Path, default=Path(\"eval\"), help=\"Directory to write logs to.\")\n    parser.add_argument(\n        \"--env-file\",",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Write the program-provided τ² retail baseline reference\")\n    parser.add_argument(\n        \"--output\",\n        default=str(DEFAULT_OUTPUT_PATH),\n        help=\"Path to write the provided baseline reference JSON\",\n    )\n    args = parser.parse_args(argv)\n    payload = build_baseline_payload()\n    output_path = Path(args.output)",
         "detail": "eval.run_baseline",
         "documentation": {}
     },
     {
-        "label": "_SIM_FILENAME_RE",
+        "label": "DEFAULT_OUTPUT_PATH",
         "kind": 5,
         "importPath": "eval.run_baseline",
         "description": "eval.run_baseline",
-        "peekOfCode": "_SIM_FILENAME_RE = re.compile(r\"^sim_(\\d+)\\.json$\")\ndef _sim_sort_key(path: Path) -> tuple[int, str]:\n    m = _SIM_FILENAME_RE.match(path.name)\n    if m:\n        return (int(m.group(1)), path.name)\n    return (10**9, path.name)\ndef _load_simulations(run_dir: Path) -> list[dict[str, Any]]:\n    sims_dir = run_dir / \"simulations\"\n    if sims_dir.is_dir():\n        sim_paths = sorted(sims_dir.glob(\"*.json\"), key=_sim_sort_key)",
+        "peekOfCode": "DEFAULT_OUTPUT_PATH = Path(\"eval/baseline_reference.json\")\ndef build_baseline_payload() -> dict[str, object]:\n    return {\n        \"message\": (\n            \"The baseline was provided by the program to ensure consistent comparison. \"\n            \"We do not run the baseline benchmark locally.\"\n        ),\n        \"provided_baseline\": dict(PROVIDED_BASELINE),\n    }\ndef main(argv: list[str] | None = None) -> int:",
         "detail": "eval.run_baseline",
         "documentation": {}
     },
@@ -4163,7 +4096,7 @@
         "kind": 2,
         "importPath": "eval.tau2_harness",
         "description": "eval.tau2_harness",
-        "peekOfCode": "def run_eval(tasks: list[dict[str, Any]], model: str, n_trials: int = 5, partition: str = \"dev\") -> dict[str, Any]:\n    all_results: list[float] = []\n    all_latencies: list[int] = []\n    total_tokens = 0\n    for trial in range(n_trials):\n        trial_passes = 0\n        for task in tasks:\n            start = time.time()\n            task_id = str(task.get(\"id\") or task.get(\"task_id\") or f\"task_{trial}\")\n            trace = langfuse.trace(",
+        "peekOfCode": "def run_eval(tasks: list[dict[str, Any]], model: str, n_trials: int = 1, partition: str = \"dev\") -> dict[str, Any]:\n    all_results: list[float] = []\n    all_latencies: list[int] = []\n    total_tokens = 0\n    for trial in range(n_trials):\n        trial_passes = 0\n        for task in tasks:\n            start = time.time()\n            task_id = str(task.get(\"id\") or task.get(\"task_id\") or f\"task_{trial}\")\n            trace = langfuse.trace(",
         "detail": "eval.tau2_harness",
         "documentation": {}
     },
@@ -4172,7 +4105,7 @@
         "kind": 2,
         "importPath": "eval.tau2_harness",
         "description": "eval.tau2_harness",
-        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"Lightweight tau2 harness\")\n    parser.add_argument(\"--tasks-file\", default=None, help=\"JSON list of tasks. Default: eval/sample_held_out_tasks.json\")\n    parser.add_argument(\"--tasks\", type=int, default=None, help=\"Limit number of tasks to run\")\n    parser.add_argument(\"--trials\", type=int, default=1, help=\"Number of trials\")\n    parser.add_argument(\"--partition\", default=\"dev\", help=\"dev or held_out\")\n    parser.add_argument(\"--model\", default=\"qwen/qwen3-30b-a3b\", help=\"Model identifier\")\n    args = parser.parse_args(argv)\n    tasks = _load_tasks(args.tasks_file, args.tasks)\n    result = run_eval(tasks, model=args.model, n_trials=args.trials, partition=args.partition)",
+        "peekOfCode": "def main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(description=\"tau2 harness using the program-provided baseline reference\")\n    parser.add_argument(\"--tasks-file\", default=None, help=\"JSON list of tasks. Prefers real tau2 task files when available.\")\n    parser.add_argument(\"--tasks\", type=int, default=None, help=\"Limit number of tasks to run\")\n    parser.add_argument(\"--trials\", type=int, default=1, help=\"Number of trials. Use 1 for mechanism evaluation.\")\n    parser.add_argument(\"--partition\", default=\"dev\", help=\"dev or held_out\")\n    parser.add_argument(\"--model\", default=\"qwen/qwen3-30b-a3b\", help=\"Model identifier\")\n    args = parser.parse_args(argv)\n    tasks, resolved_tasks_file = _load_tasks(args.tasks_file, args.tasks)\n    result = run_eval(tasks, model=args.model, n_trials=args.trials, partition=args.partition)",
         "detail": "eval.tau2_harness",
         "documentation": {}
     },
@@ -4181,7 +4114,7 @@
         "kind": 5,
         "importPath": "eval.tau2_harness",
         "description": "eval.tau2_harness",
-        "peekOfCode": "SCORE_LOG = Path(\"eval/score_log.json\")\nTRACE_LOG = Path(\"eval/trace_log.jsonl\")\nclass _NullTrace:\n    def __init__(self, trace_id: str) -> None:\n        self.id = trace_id\nclass _TraceClient:\n    def __init__(self) -> None:\n        self._client = None\n        if Langfuse is not None:\n            try:",
+        "peekOfCode": "SCORE_LOG = Path(\"eval/score_log.json\")\nTRACE_LOG = Path(\"eval/trace_log.jsonl\")\nPROVIDED_BASELINE = {\n    \"name\": \"program_provided_tau2_retail_baseline\",\n    \"evaluated_simulations\": 150,\n    \"total_tasks\": 30,\n    \"trials_per_task\": 5,\n    \"pass_at_1\": 0.7267,\n    \"ci_95\": [0.6504, 0.7917],\n    \"avg_agent_cost_usd\": 0.0199,",
         "detail": "eval.tau2_harness",
         "documentation": {}
     },
@@ -4190,7 +4123,25 @@
         "kind": 5,
         "importPath": "eval.tau2_harness",
         "description": "eval.tau2_harness",
-        "peekOfCode": "TRACE_LOG = Path(\"eval/trace_log.jsonl\")\nclass _NullTrace:\n    def __init__(self, trace_id: str) -> None:\n        self.id = trace_id\nclass _TraceClient:\n    def __init__(self) -> None:\n        self._client = None\n        if Langfuse is not None:\n            try:\n                self._client = Langfuse()",
+        "peekOfCode": "TRACE_LOG = Path(\"eval/trace_log.jsonl\")\nPROVIDED_BASELINE = {\n    \"name\": \"program_provided_tau2_retail_baseline\",\n    \"evaluated_simulations\": 150,\n    \"total_tasks\": 30,\n    \"trials_per_task\": 5,\n    \"pass_at_1\": 0.7267,\n    \"ci_95\": [0.6504, 0.7917],\n    \"avg_agent_cost_usd\": 0.0199,\n    \"p50_latency_s\": 105.9521,",
+        "detail": "eval.tau2_harness",
+        "documentation": {}
+    },
+    {
+        "label": "PROVIDED_BASELINE",
+        "kind": 5,
+        "importPath": "eval.tau2_harness",
+        "description": "eval.tau2_harness",
+        "peekOfCode": "PROVIDED_BASELINE = {\n    \"name\": \"program_provided_tau2_retail_baseline\",\n    \"evaluated_simulations\": 150,\n    \"total_tasks\": 30,\n    \"trials_per_task\": 5,\n    \"pass_at_1\": 0.7267,\n    \"ci_95\": [0.6504, 0.7917],\n    \"avg_agent_cost_usd\": 0.0199,\n    \"p50_latency_s\": 105.9521,\n    \"p95_latency_s\": 551.6491,",
+        "detail": "eval.tau2_harness",
+        "documentation": {}
+    },
+    {
+        "label": "FALLBACK_TASKS_FILE",
+        "kind": 5,
+        "importPath": "eval.tau2_harness",
+        "description": "eval.tau2_harness",
+        "peekOfCode": "FALLBACK_TASKS_FILE = Path(\"eval/sample_held_out_tasks.json\")\nclass _NullTrace:\n    def __init__(self, trace_id: str) -> None:\n        self.id = trace_id\nclass _TraceClient:\n    def __init__(self) -> None:\n        self._client = None\n        if Langfuse is not None:\n            try:\n                self._client = Langfuse()",
         "detail": "eval.tau2_harness",
         "documentation": {}
     },
@@ -4199,7 +4150,7 @@
         "kind": 5,
         "importPath": "eval.tau2_harness",
         "description": "eval.tau2_harness",
-        "peekOfCode": "langfuse = _TraceClient()\ndef run_eval(tasks: list[dict[str, Any]], model: str, n_trials: int = 5, partition: str = \"dev\") -> dict[str, Any]:\n    all_results: list[float] = []\n    all_latencies: list[int] = []\n    total_tokens = 0\n    for trial in range(n_trials):\n        trial_passes = 0\n        for task in tasks:\n            start = time.time()\n            task_id = str(task.get(\"id\") or task.get(\"task_id\") or f\"task_{trial}\")",
+        "peekOfCode": "langfuse = _TraceClient()\ndef run_eval(tasks: list[dict[str, Any]], model: str, n_trials: int = 1, partition: str = \"dev\") -> dict[str, Any]:\n    all_results: list[float] = []\n    all_latencies: list[int] = []\n    total_tokens = 0\n    for trial in range(n_trials):\n        trial_passes = 0\n        for task in tasks:\n            start = time.time()\n            task_id = str(task.get(\"id\") or task.get(\"task_id\") or f\"task_{trial}\")",
         "detail": "eval.tau2_harness",
         "documentation": {}
     },

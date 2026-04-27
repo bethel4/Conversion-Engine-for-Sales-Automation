@@ -203,6 +203,36 @@ def lookup_company(name: str) -> dict[str, Any] | None:
     return record
 
 
+def search_companies(query: str = "", *, limit: int = 20) -> list[dict[str, Any]]:
+    dataset_path = _resolve_dataset_path()
+    records = load_crunchbase_dataset(dataset_path)
+    normalized_query = normalize_company_name(query)
+
+    matches: list[dict[str, Any]] = []
+    for record in records:
+        name = _extract_company_name(record)
+        if not name:
+            continue
+        normalized_name = normalize_company_name(name)
+        if normalized_query and normalized_query not in normalized_name:
+            continue
+        enriched = _with_compat_fields(record)
+        matches.append(
+            {
+                "name": name,
+                "id": enriched.get("id"),
+                "domain": _domain_from_record(enriched),
+                "country": enriched.get("country"),
+                "employee_count": enriched.get("employee_count"),
+                "industries": enriched.get("categories") or [],
+                "description": enriched.get("description"),
+            }
+        )
+        if len(matches) >= limit:
+            break
+    return matches
+
+
 def _extract_company_name(record: dict[str, Any]) -> str | None:
     for key in ("name", "company_name", "organization_name", "company"):
         value = record.get(key)
@@ -558,6 +588,14 @@ def _write_json(path: Path, payload: Any) -> None:
         json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def _domain_from_record(record: dict[str, Any]) -> str | None:
+    website = record.get("website") or record.get("domain")
+    if not isinstance(website, str) or not website.strip():
+        return None
+    value = re.sub(r"^https?://", "", website.strip())
+    return value.split("/", 1)[0] or None
 
 
 def main(argv: list[str] | None = None) -> int:
